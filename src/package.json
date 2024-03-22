@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "jquery": "^3.7.1",
+    "nouislider": "^15.7.1",
+    "wnumb": "^1.2.0"
+  },
+  "dependencies": {
+    "common-js": "^0.3.8"
+  }
+}
