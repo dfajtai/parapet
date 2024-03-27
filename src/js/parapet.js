@@ -1,143 +1,5 @@
-function dynamicRangeInput(container, name, label, default_value, arg = null, on_change = null){
-    var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for",name+"Input").html(label);
-
-    var group_container = $("<div/>").addClass("input-group");
-    
-    var _input = $("<input/>").addClass("form-control form-range w-50 mt-2 me-2");
-    _input.attr("type","range").attr("id",name+"Input").attr("name",name).attr("data-name",name).attr("data-label",label);
-    $(_input).attr("data-value","");
-
-    if(arg.hasOwnProperty("step")) _input.attr("step",arg.step);
-    if(arg.hasOwnProperty("min")) _input.attr("min",arg.min);
-    if(arg.hasOwnProperty("max")) _input.attr("max",arg.max);
-
-    group_container.append(_input)
-
-    var current =$("<input/>").addClass("form-control").attr("type","numeric").attr("id","currentValue");
-
-    $(current).val(default_value);
-    if(arg.hasOwnProperty("step")) current.attr("step",arg.step);
-    
-    group_container.append(current);
-
-    $(_input).on("change",function(){
-        $(current).val($(this).val());
-        $(this).prop("data-value",$(this).val());
-        if(on_change instanceof Function){
-            on_change($(this).val());
-        }
-    })
-
-    $(current).on("change",function(){
-        $(_input).val($(this).val());
-        $(_input).prop("data-value",$(this).val());
-    })
-
-    $(_input).on("input",function(){
-        $(current).val($(this).val());
-        $(this).prop("data-value",$(this).val());
-    })
-
-    if(arg.hasOwnProperty("unit")){
-        var unit = $("<span/>").addClass("input-group-text w-25");  
-        unit.html(arg.unit);
-        group_container.append(unit);
-    }
-
-    $(_input).val(default_value).trigger("change");
-
-    container.append(_label);
-    container.append($("<div/>").addClass("col-md-9").append(group_container));
-}
-
-
-function dynamicTimeInput(container,name,label, on_change = null){
-    var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for",name+"Input").html(label);
-
-    var group_container = $("<div/>").addClass("d-flex flex-xl-row flex-column justify-content-evenly");
-
-    var part_1 = $("<div/>").addClass("input-group d-flex flex-fill mb-xl-0 mb-1 me-xl-2");
-    var part_2 = $("<div/>").addClass("input-group d-flex flex-fill");
-
-    group_container.append(part_1);
-    group_container.append(part_2);
-
-    var current = $("<span/>").addClass("input-group-text flex-grow-1").attr("id","currentTime");
-    part_1.append(current);
-
-    var fa_span =$("<span/>").addClass("fa fa-arrow-right update-date pt-1");
-    part_1.append($("<i/>").addClass("btn-outline-dark btn update-date").append(fa_span));
-    var _input = $("<input/>").addClass("form-control flex-grow-1").attr("type","time").attr("id",name+"Input").attr("name",name).attr("data-name",name).attr("data-label",label).attr("step","0");
-    
-    // _input.val(moment().format("HH:mm"));
-    _input.on("change",function(){
-        if(on_change instanceof Function){
-            on_change($(this).val());
-        }
-    })
-
-    part_2.append(_input);
-
-    var clear_span =$("<span/>").addClass("fa fa-x clear-datetime pt-1");
-    part_2.append($("<i/>").addClass("btn-outline-dark btn clear-datetime").append(clear_span));
-
-    current.html(moment().format("HH:mm"));
-    setInterval(function(){current.html(moment().format("HH:mm"));},1000);
-
-    group_container.find(".update-date").on("click", function (){
-        $(_input).val(current.html());
-    });
-
-    group_container.find(".clear-datetime").on("click", function (){
-        $(_input).val(null);
-    });
-
-    container.append(_label);
-    container.append($("<div/>").addClass("col-md-9").append(group_container));
-}
-
-
-
-function simple_dynamic_input_time(container, name, label, interval = 5, min_time = null, max_time = null, default_time = null, on_change = null){
-    container.empty();
-
-    if(min_time === null) min_time = moment(Parapet.work_start,"HH:mm").format("HH:mm");
-    if(max_time === null) max_time = moment(Parapet.work_end,"HH:mm").format("HH:mm");
-    if(default_time === null) default_time = moment(Parapet.default_time,"HH:mm").format("HH:mm");
-    
-    var _time_label = $("<label/>").addClass("col-md-3 col-form-label").attr("for","pet_start").html(label);
-    var _time_input = $("<input/>").addClass("form-control").attr("id",name+"_input").attr("name",name);
-
-    container.append(_time_label);
-    container.append($("<div/>").append(_time_input).addClass("col-md-9"));
-    
-
-    _time_input.timepicker({
-        timeFormat: 'HH:mm',
-        interval: interval,
-        minTime: moment(min_time,"HH:mm").format("HH:mm"),
-        maxTime: moment(max_time,"HH:mm").format("HH:mm"),
-        defaultTime: moment(default_time,"HH:mm").format("HH:mm"),
-        startTime: moment(min_time,"HH:mm").format("HH:mm"),
-        dynamic: false,
-        dropdown: true,
-        scrollbar: true
-        });
-    _time_input.on("click",function(){
-        $(this).val("");
-    })
-    _time_input.on("change",function(){
-        if(on_change instanceof Function){
-            on_change($(this).val());
-        }
-    })
-
-}
-
-
-
 class Parapet {
-    static number_of_patients = 1;
+    static number_of_patients = 3;
     static work_start = moment("08:00","HH:mm");
     static work_end = moment("16:00","HH:mm");
     static default_time = this.work_start;
@@ -149,6 +11,7 @@ class Parapet {
 
     static patients_container = null;
     static patients = [];
+    static colors = generateDistinctColors(10);
 
     static indicator_container = null;
 
@@ -169,6 +32,7 @@ class Parapet {
         else if(Parapet.patients.length<new_count){
             for (let index = Parapet.patients.length; index < new_count; index++) {
                 var new_patient = new PETPatient(Parapet.default_time);
+                new_patient.pushToPatients();
             }
         }
         for (let index = 0; index < new_count; index++) {
@@ -207,25 +71,78 @@ class Parapet {
         config_container.append(number_of_patients_block);
 
 
-        var work_start_block = $("<div/>").add("col-md-4");
+        var work_start_block = $("<div/>").addClass("col-md-4 row");
+        
+        simple_dynamic_input_time(
+          work_start_block,
+          "work_start",
+          "Work start",
+          30,
+          "06:00",
+          "18:00",
+          moment(Parapet.work_start, "HH:mm").format("HH:mm"),
+          function (val) {
+                if(val=="") val = Parapet.work_start;
+                if(moment(Parapet.work_end,"HH:mm").diff(moment(val,"HH:mm"),"minutes")<=0){
+                    alert("Work start can not be greater than work end");
+                    work_start_block.find("input").val(moment(Parapet.work_start,"HH:mm").format("HH:mm"));
+                }
+                else{
+                    Parapet.work_start = moment(val, "HH:mm").format("HH:mm");
+                    Parapet.updateWorkHours();
+                }
+          }
+        );
 
+        config_container.append(work_start_block);
 
-        var work_end_block = $("<div/>").add("col-md-4");
+        var work_end_block = $("<div/>").addClass("col-md-4 row");
+        simple_dynamic_input_time(
+          work_end_block,
+          "work_end",
+          "Work end",
+          30,
+          "06:00",
+          "18:00",
+          moment(Parapet.work_end, "HH:mm").format("HH:mm"),
+          function (val) {
+            if(val=="") val = Parapet.work_end;
+            if(moment(val,"HH:mm").diff(moment(Parapet.work_start,"HH:mm"),"minutes")<=0){
+                alert("Work end can not be smaller than work start");
+                work_end_block.find("input").val(moment(Parapet.work_end,"HH:mm").format("HH:mm"));
+            }
+            else{
+                Parapet.work_end = moment(val, "HH:mm").format("HH:mm");
+                Parapet.updateWorkHours();
+            }
+          }
+        );
+
+        config_container.append(work_end_block);
 
 
         container.append(config_container);
 
     }
 
+    static updateWorkHours(){
+        $.each(Parapet.patients,function (patient_index, patient) { 
+            if(patient instanceof PETPatient){
+                if(patient.container)  patient.create_GUI(patient.container);
+                console.log("updated");
+            }
+        })
+    }
+
     static createUpdatePatientsGUI(container = null){
         if(container!== null) this.patients_container = $(container);
 
-        this.patients_container.addClass("d-flex");
+        this.patients_container.addClass("d-flex flex-column");
 
 
         for (let index = 0; index < this.patients.length; index++) {
             const patient = this.patients[index];
-            var patient_container = $("<div/>").attr("id",`patient_${index+1}`);
+            var patient_container = $("<div/>").attr("id",`patient_${index+1}`).addClass("row");
 
             if(this.patients_container.find(`#patient_${index+1}`).length == 0){
                 this.patients_container.append(patient_container);
@@ -243,22 +160,36 @@ class Parapet {
 }
 
 
+
 class PETPatient {
+
+    static presets = {
+        fdg: new PETPatient(null, 3, 5, 90, 1, [], 5, 15),
+        fdg_wb: new PETPatient(null, 7, 5, 90, 1, [], 5, 15),
+        dopa: new PETPatient(null, 3, 5, 90, 1, [], 5, 15),
+        dopa_wb: new PETPatient(null, 7, 5, 90, 1, [], 5, 15),
+        choline: new PETPatient(null, 3, 5, 10, 2, [60], 5, 5),
+        choline_prostata: new PETPatient(null, 3, 5, 2, 2, [60], 5, 5),
+        // test: new PETPatient(null, 3, 5, 2, 3, [30,60], 5, 5),
+    };
+
+
+
     constructor (pet_start = null, number_of_fovs =1 , fov_duration = 10, inj_delay = 10,
-                 number_of_measurements = 1,  timings = [], start_delay = 2, end_delay = 2 ){
+                 number_of_scans = 1,  timings = [], start_delay = 2, end_delay = 2 ){
 
         if(pet_start === null) pet_start = Parapet.default_time;
-        this.pet_start = pet_start;
+        this.pet_start = moment(pet_start,"HH:mm").format("HH:mm");
 
         this.inj_delay = inj_delay;
 
         this.number_of_fovs = number_of_fovs;
         this.fov_duration = fov_duration;
 
-        this.number_of_measurements = number_of_measurements;
+        this.number_of_scans = number_of_scans;
 
         if(timings === null){
-            this.timings = new Array(number_of_measurements-1).fill(0);
+            this.timings = new Array(number_of_scans-1).fill(0);
         }
         else{
             this.timings = timings;
@@ -266,25 +197,48 @@ class PETPatient {
         
 
         
-        if(this.number_of_measurements-1 != this.timings.length){
+        if(this.number_of_scans-1 != this.timings.length){
             throw new RangeError("A timing is required for every subsequent measurement.");
         }
 
         this.start_delay = start_delay;
         this.end_delay = end_delay;
 
+
+        this.param_keys = Object.keys(this);
+    
+    }
+
+    pushToPatients(){
+        this.patient_name = "";
+
         this.container = null;
         this.index =  Parapet.patients.length;
-        this.slider_name = `slider_${this.index}`;
+        this.slider_name = `patient_${this.index}_slider`;
 
         this.slider_div = null;
         this.slider = null;
         this.params_div = null;
 
-        this.visible = true;
+        this.visible = true;    
+
+        this.color = Parapet.colors[this.index];
+
+        this.slider_dragged = false;
+        this.slider_pre_drag_starts = null;
 
         Parapet.patients.push(this);
-        
+
+
+    }
+
+    initFromPreset(preset_name){
+        if(preset_name in PETPatient.presets){
+            $.each(PETPatient.presets[preset_name].param_keys,
+                function(index,key){
+                    if(key!="pet_start") this[key] = PETPatient.presets[preset_name][key];
+                }.bind(this))
+        }
     }
 
     set_visibility(new_visibility_val){
@@ -301,78 +255,66 @@ class PETPatient {
         }
     }
 
-    #create_slider_gui(container){
-        $(container).empty();
-        var slider_element = $("<div/>").addClass("slider-box-handle slider-styled slider-hide  w-100").attr("id",this.slider_name);
-        container.append($("<div/>").append(slider_element).css("height","100pt"));
-        this.container.append(container);
+    update_params_gui(){
+        if(this.params_div){
+            // console.log(this.params_div)
+            $.each(this.param_keys,function(index, key){     
+                // console.log(key);          
+                var param_div = this.params_div.find(`[name="${key}"]`);
+                // console.log(param_div);
 
-        
-        var slider = document.getElementById(this.slider_name);
-        this.slider = slider;
-
-        function filterPips(value, type) {
-            var minute = value %30;
-            switch(minute){
-                case 15:
-                    return 2
-                break;
-                case 0:
-                    return 1;
-                break;
-                default:
-                    return 0;
-            }
-        }
-
-        noUiSlider.create(slider,{
-            start: [100, 130, 200,230],
-            connect: [false,true,false,true,false],
-            behaviour: 'drag-all',
-            range: {
-                'min': 0,
-                'max': 600
-            },
-            step:5,
-            pips: {
-                mode: 'steps',
-                density: 5,
-                filter: filterPips,
-                format: wNumb({
-                    decimals: 0,
-                    edit: function(value){
-                        //console.log(value);
-                        return moment("07:30","HH:mm").add(value,"minutes").format("HH:mm");
-                    }
+                switch (param_div.length) {
+                    case 0:
+                        break;
                     
-                })
-            },
-            tooltips:true
+                    case 1:
+                        param_div.first().val(this[key]).trigger("change");
+                        break;
+                    
+                    default:
+                        // $.each(param_div,function(_index, element){
+                        //     $(element).val(this[key][parseInt($(element).attr("index"))]).trigger("change");
+                        // }.bind(this))
+                        break;
+                }
+            }.bind(this))
+        }
+    }
+
+    #show_presets_block(container,label = "Preset"){
+        var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for","presets").html(label);
+        var _select_dropdow = $("<select/>").addClass("form-select form-select-sm").attr("type","text").attr("id","presets_select").attr("name","presets");
+        _select_dropdow.append($("<option/>").html("Choose preset...").prop('selected',true).attr("value",""));
+        $.each(PETPatient.presets, function (preset_name, preset_patient) { 
+            _select_dropdow.append($("<option/>").html(preset_name).attr("value",preset_name));
         });
-
-        //mergeTooltips(slider, 5, ' - ');
-
-
-        var activePips = [null, null];
         
-        slider.noUiSlider.on('update', function (values, handle) {
-            // Remove the active class from the current pip
-            if (activePips[handle]) {
-                activePips[handle].classList.remove('active-pip');
-                
+        _select_dropdow.on("change",function(event){
+            const val = event.target.value;
+            if(val!=""){
+                this.initFromPreset(val);
+                this.update_params_gui();
             }
+        }.bind(this))
 
-            // Match the formatting for the pip
-            var dataValue = Math.round(values[handle]);
+        container.empty();
+        container.append(_label).append($("<div/>").addClass("col-md-9").append(_select_dropdow));
 
-            // Find the pip matching the value
-            activePips[handle] = slider.querySelector('.noUi-value[data-value="' + dataValue + '"]');
+    }
 
-            // Add the active class
-            if (activePips[handle]) {
-                activePips[handle].classList.add('active-pip');
-            }
-        });
+    #show_name_block(container){
+        var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for","patient_name").html(`Patient Nr.${this.index+1}`);
+        var _input = $("<input/>").addClass("form-control form-control-sm").attr("type","text").attr("id","presets_select").attr("name","patient_name");
+        _input.attr("placeholder","Patient Name (GDPR!)")
+        _input.val(this.patient_name);
+        
+        _input.on("change",function(event){
+            const val = event.target.value;
+            this.patient_name = val;
+        }.bind(this))
+
+        container.empty();
+        container.append(_label).append($("<div/>").addClass("col-md-9").append(_input));
 
     }
 
@@ -403,29 +345,51 @@ class PETPatient {
         for (let index = 0; index < this.timings.length; index++) {
             const orig_timing = this.timings[index];
             var timing_label = `Timing of the ${index+2}. measurement`;
-            var _timing_input = $("<input/>").addClass("form-control flex-fill").attr("name","timing").attr("type","numeric").attr("step",1).prop("timing-index",index);
+            var _timing_input = $("<input/>").addClass("form-control form-control-sm flex-fill").attr("name","timings").attr("type","numeric").attr("step",1).attr("index",index);
             _timing_input.attr("data-bs-toggel","tooltip").attr("data-bs-placement","top").attr("title",timing_label);
             if(index>0){
                 _timing_input.addClass("ms-1")
             }
             _timing_input.val(orig_timing);
             _timing_block.append(_timing_input);
-            
+
+
+            $(_timing_input).on("change",function(event){
+                let val = event.target.value;
+                if(val==""){
+                    $(_timing_input).val(0);
+                }
+                let number_value = parseInt(val);
+                if(isNaN(number_value)){
+                    alert("invalid timing");
+                    $(_timing_input).val(0);
+                }
+                else{
+                    $(_timing_input).val(number_value);
+                    this.timings[index] = number_value;
+                    this.paramsToSlider();
+                }
+            }.bind(this))
         }
+
+
 
     }
 
-    #create_parameter_gui(container){
+    create_parameter_gui(container){
 
         $(container).empty();
 
         $(container).addClass("d-flex flex-column");
 
-        var number_of_measurements_block = $("<div/>").attr("id","number_of_measurements_block").addClass("row mb-1");
+        var name_block = $("<div/>").attr("id","name_block").addClass("row mb-1");
+        var preset_block = $("<div/>").attr("id","preset_block").addClass("row mb-1");
+        var start_time_block = $("<div/>").attr("id","start_time_block").addClass("row mb-1");
+    
+        var number_of_scans_block = $("<div/>").attr("id","number_of_scans_block").addClass("row mb-1");
         var timing_block = $("<div/>").addClass("row mb-1 d-flex");
         var inj_delay_block = $("<div/>").attr("id","inj_delay_block").addClass("row mb-1");
 
-        var start_time_block = $("<div/>").attr("id","start_time_block").addClass("row mb-1");
 
         var number_of_fovs_block = $("<div/>").attr("id","number_of_fovs_block").addClass("row mb-1");
         var fov_duration_block = $("<div/>").attr("id","fov_duration_block").addClass("row mb-1");
@@ -433,11 +397,15 @@ class PETPatient {
         var start_delay_block = $("<div/>").attr("id","start_delay_block").addClass("row mb-1");
         var end_delay_block  = $("<div/>").attr("id","end_delay_block").addClass("row mb-1");
 
-        container.append(number_of_measurements_block);
+        container.append(name_block);
+        container.append(preset_block);        
+        container.append(start_time_block);
+        
+
+        container.append(number_of_scans_block);
         container.append(timing_block);
         container.append(inj_delay_block);
         
-        container.append(start_time_block);
 
         container.append(number_of_fovs_block);
         container.append(fov_duration_block);
@@ -446,56 +414,60 @@ class PETPatient {
         container.append(end_delay_block);
 
         this.container.append(container);
-        
 
-        dynamicRangeInput(number_of_measurements_block,
-            "number_of_measurements",
-            "Number of measurements",
-            this.number_of_measurements,
+        this.#show_name_block(name_block);
+        this.#show_presets_block(preset_block);
+        
+        
+        simple_dynamic_input_time(
+            start_time_block,
+            "pet_start",
+            "PET start time",
+            5,
+            null,
+            null,
+            moment(Parapet.work_start,"HH:mm").format("HH:mm"),
+            function (val) {
+                if(val==""){
+                    val = moment(this.pet_start, "HH:mm").format("HH:mm");
+                    $(start_time_block).find("input").val(val);
+                }
+
+                this.pet_start = moment(val, "HH:mm").format("HH:mm");
+                this.paramsToSlider();
+            }.bind(this)
+        );
+
+        dynamicRangeInput(number_of_scans_block,
+            "number_of_scans",
+            "Number of scans",
+            this.number_of_scans,
             {"min":1,"max":3,"step":1},
             function(val){
-                this.number_of_measurements = parseInt(val);
+                this.number_of_scans = parseInt(val);
 
-                if(this.number_of_measurements-1 > this.timings.length){
-                    for (let index = this.timings.length; index < this.number_of_measurements-1; index++) {
+                if(this.number_of_scans-1 > this.timings.length){
+                    for (let index = this.timings.length; index < this.number_of_scans-1; index++) {
                         this.timings.push(0);
                     }
                 }
-                else if(this.number_of_measurements-1 < this.timings.length)
+                else if(this.number_of_scans-1 < this.timings.length)
                 {
-                    for (let index = this.number_of_measurements-1; index <this.timings.length; index++) {
+                    for (let index = this.number_of_scans-1; index <this.timings.length; index++) {
                         this.timings.pop();
                     }
                 }
                 this.draw_timig_block(timing_block);
+                if(this.slider_div){
+                    this.create_slider_gui(this.slider_div);
+                    // this.paramsToSlider();
+                }
+                
             }.bind(this))
         
-
-
-
-        
-        // this.#dynamicTimeInput(start_time_block,
-        //     "start",
-        //     "PET start time [HH:mm]",
-        //     function(val){
-        //         this.pet_start = monent(val);
-        //     }.bind(this))
-        simple_dynamic_input_time(
-          start_time_block,
-          "pet_start",
-          "PET start time [HH:mm]",
-          5,
-          null,
-          null,
-          null,
-          function (val) {
-            console.log(val);
-            this.pet_start = moment(val, "HH:mm");
-          }.bind(this)
-        );
         
         dynamicRangeInput(inj_delay_block,
-            "start_delay",
+            "inj_delay",
             "Inj. delay [min]",
             this.inj_delay,
             {"min":0,"max":90,"step":1},
@@ -540,10 +512,164 @@ class PETPatient {
                 this.end_delay = parseInt(val);
             }.bind(this))     
         
+
+        $(container).find("input").on("change",function(){
+            this.paramsToSlider();
+        }.bind(this))
+    }
+
+    paramsToSliderParams(sanitize = true){
+        var start = [];
+        var pet_start = moment(this.pet_start,"HH:mm");
+
+        var connect = [false];
+
+        for (let index = 0; index < this.number_of_scans; index++) {
+            connect.push(true,false);
+                        
+            var measurement_start = moment(pet_start).subtract(this.start_delay,"minutes");
+            var measurement_end = moment(pet_start).add(this.number_of_fovs * this.fov_duration + this.end_delay,"minutes");
+
+            if(index>0){
+                var timing_delay = this.timings[index-1];
+                measurement_start = measurement_start.add(timing_delay,"minutes");
+                measurement_end = measurement_end.add(timing_delay,"minutes");
+            }
+            
+            var start_point = measurement_start.diff(moment(Parapet.work_start,"HH:mm"),"minutes");
+            var end_point = measurement_end.diff(moment(Parapet.work_start,"HH:mm"),"minutes");
+
+            if(sanitize & start_point<0){
+                end_point +=-start_point;
+                start_point = 0;
+            }
+
+            start.push(start_point,end_point);
+        }
+
+        return {start:start,connect:connect}
+    }
+
+    paramsToSlider(){
+        var params = this.paramsToSliderParams();
+        if(this.slider){
+            this.slider.noUiSlider.set(params.start);
+        }
+    }
+
+    sliderToTimes(){
+        if(this.slider){
+            const slider_vals = this.slider.noUiSlider.get(true);
+            console.log(slider_vals);
+
+        }
         
 
     }
 
+
+    create_slider_gui(container){
+        $(container).empty();
+        var slider_element = $("<div/>").addClass("slider-box-handle slider-styled slider-hide  w-100").attr("id",this.slider_name);
+        container.append($("<div/>").append(slider_element).css("height","65pt").addClass("w-100"));
+        this.container.append(container);
+
+        
+        var slider = document.getElementById(this.slider_name);
+        this.slider = slider;
+
+        function filterPips(value, type) {
+            var minute = value %30;
+            switch(minute){
+                case 15:
+                    return 2
+                    break;
+                case 0:
+                    return 1;
+                    break;
+                default:
+                    if(minute%5==0) return 2;
+                    return -1;
+            }
+        }
+
+        var options = this.paramsToSliderParams();
+
+
+        noUiSlider.create(slider,{
+            start: options.start,
+            connect: options.connect,
+            behaviour: 'drag-all',
+            range: {
+                'min': 0,
+                'max': moment(Parapet.work_end,"HH:mm").diff(moment(Parapet.work_start,"HH:mm"),"minutes")
+            },
+            step:1,
+
+            pips: {
+                mode: 'steps',
+                density: 5,
+                filter: filterPips,
+                format: wNumb({
+                    decimals: 0,
+                    edit: function(value){
+                        //console.log(value);
+                        return moment(Parapet.work_start,"HH:mm").add(value,"minutes").format("HH:mm");
+                    }})},
+            tooltips:false
+        });
+
+        $(slider).find(".noUi-connect").css("background",this.color);
+        //mergeTooltips(slider, 5, ' - ');
+
+
+        var activePips = [null, null];
+        
+        slider.noUiSlider.on('update', function (values, handle) {
+            // Remove the active class from the current pip
+            if (activePips[handle]) {
+                activePips[handle].classList.remove('active-pip');
+                
+            }
+
+            // Match the formatting for the pip
+            var dataValue = Math.round(values[handle]);
+
+            // Find the pip matching the value
+            activePips[handle] = slider.querySelector('.noUi-value[data-value="' + dataValue + '"]');
+
+            // Add the active class
+            if (activePips[handle]) {
+                activePips[handle].classList.add('active-pip');
+            }
+        });
+
+        slider.noUiSlider.on('start', function () { 
+            this.slider_dragged = false;
+            this.slider_pre_drag_starts = slider.noUiSlider.get(true);
+            console.log(this.slider_pre_drag_starts);
+        }.bind(this));
+
+        slider.noUiSlider.on('drag', function () { 
+            this.slider_dragged = true;
+            console.log("drag");
+        }.bind(this));
+
+        slider.noUiSlider.on('end', function () { 
+            if(!this.slider_dragged)  
+                slider.noUiSlider.set(this.slider_pre_drag_starts);
+            else{
+                var vals = slider.noUiSlider.get(true);
+                var start_min = vals[0]+this.start_delay;
+                this.pet_start = moment(Parapet.work_start,"HH:mm").add(start_min,"minutes").format("HH:mm");
+                this.update_params_gui();
+            }
+        }.bind(this));
+
+
+
+
+    }
 
 
     create_GUI(container){
@@ -552,15 +678,18 @@ class PETPatient {
         }
         this.container = $(container);
 
-        var slider_div = $("<div/>").attr("id","slider_div");
-        this.slider_div = slider_div;
+        this.params_div = $("<div/>").addClass("p-1 col-4");
+        this.slider_div = $("<div/>").addClass("p-3 col-8");
+        
+        
+        container.append(this.params_div);
+        container.append(this.slider_div);
+        
 
-
-        var parameter_div = $("<div/>").attr("id","param_div");
-        this.params_div = parameter_div;
-
-        // this.#create_slider_gui(slider_div);
-        this.#create_parameter_gui(parameter_div);
+        
+        this.create_parameter_gui(this.params_div);
+        this.create_slider_gui(this.slider_div);
+        
 
 
     }

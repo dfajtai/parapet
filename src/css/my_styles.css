@@ -17,13 +17,15 @@
 .slider-styled .noUi-handle .noUi-touch-area {
     border: 1px solid transparent;
     position: absolute;
-    top: -10px;
-    left: -10px;
-    right: -10px;
-    bottom: -10px;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
     width: auto;
     height: auto;
 }
+
+
 
 /* Show a border when hovering the area the handle responds to */
 .slider-styled .noUi-handle:hover .noUi-touch-area {
@@ -67,5 +69,59 @@
 
 .active-pip {
     font-weight: bold;
-    color: red;
+    color: black;
+}
+
+.noUi-pips-horizontal {
+    margin-top: -6pt;
+}
+.noUi-value-large{
+    font-size: small;
+    margin-top: -6pt;
+}
+.noUi-value-sub{
+    font-size: x-small;
+}
+
+
+.ui-timepicker-viewport{
+    font-size: small;
+}
+
+.ui-timepicker-container{
+    z-index: 9999 !important; /* Set a high z-index value */
+}
+  
+
+
+.form-range::-moz-range-thumb {
+    width: .7rem; /* Set the width of the thumb */
+    height: .7rem; /* Ensure the height is auto so it maintains aspect ratio */
+}
+.form-range::-moz-range-track {
+    background: white;
+    border: #adb5bd solid 1px;
+    height: 0.2rem;
+    
+}
+
+
+.form-range::-webkit-slider-thumb {
+    width: .7rem; /* Set the width of the thumb */
+    height: .7rem;/* Ensure the height is auto so it maintains aspect ratio */
+}
+.form-range::-webkit-slider-track {
+    background: white;
+    border: #adb5bd solid 1px;
+    height: 0.2rem;
+}
+
+.form-range::-ms-thumb {
+    width: .7rem; /* Set the width of the thumb */
+    height: .7rem; /* Ensure the height is auto so it maintains aspect ratio */
+}
+.form-range::-ms-track{
+    background: white;
+    border: #adb5bd solid 1px;
+    height: 0.2rem;
 }
