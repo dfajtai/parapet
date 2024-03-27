@@ -54,7 +54,7 @@ class Parapet {
 
         
         
-        var number_of_patients_block = $("<div/>").addClass("col-md-4 row ");
+        var number_of_patients_block = $("<div/>").addClass("col-md-4 d-flex ");
         
         dynamicRangeInput(
           number_of_patients_block,
@@ -71,7 +71,7 @@ class Parapet {
         config_container.append(number_of_patients_block);
 
 
-        var work_start_block = $("<div/>").addClass("col-md-4 row");
+        var work_start_block = $("<div/>").addClass("col-md-4 d-flex");
         
         simple_dynamic_input_time(
           work_start_block,
@@ -96,7 +96,7 @@ class Parapet {
 
         config_container.append(work_start_block);
 
-        var work_end_block = $("<div/>").addClass("col-md-4 row");
+        var work_end_block = $("<div/>").addClass("col-md-4 d-flex");
         simple_dynamic_input_time(
           work_end_block,
           "work_end",
@@ -142,7 +142,8 @@ class Parapet {
 
         for (let index = 0; index < this.patients.length; index++) {
             const patient = this.patients[index];
-            var patient_container = $("<div/>").attr("id",`patient_${index+1}`).addClass("row");
+            var patient_container = $("<div/>").attr("id",`patient_${index+1}`).addClass("row p-2 m-1 shadow-sm").css("border","#ced4da 0.5px solid");
+            patient_container.css("background","#f8f9fa");;
 
             if(this.patients_container.find(`#patient_${index+1}`).length == 0){
                 this.patients_container.append(patient_container);
@@ -224,6 +225,8 @@ class PETPatient {
 
         this.color = Parapet.colors[this.index];
 
+        this.patient_details_name = `patient_${this.index+1}_details`;
+
         this.slider_dragged = false;
         this.slider_pre_drag_starts = null;
 
@@ -283,8 +286,8 @@ class PETPatient {
 
     #show_presets_block(container,label = "Preset"){
         var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for","presets").html(label);
-        var _select_dropdow = $("<select/>").addClass("form-select form-select-sm").attr("type","text").attr("id","presets_select").attr("name","presets");
-        _select_dropdow.append($("<option/>").html("Choose preset...").prop('selected',true).attr("value",""));
+        var _select_dropdow = $("<select/>").addClass("form-select").attr("type","text").attr("id","presets_select").attr("name","presets");
+        _select_dropdow.append($("<option/>").html("Choose preset...").prop('selected',true).attr("value","").attr("disabled",true));
         $.each(PETPatient.presets, function (preset_name, preset_patient) { 
             _select_dropdow.append($("<option/>").html(preset_name).attr("value",preset_name));
         });
@@ -303,8 +306,8 @@ class PETPatient {
     }
 
     #show_name_block(container){
-        var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for","patient_name").html(`Patient Nr.${this.index+1}`);
-        var _input = $("<input/>").addClass("form-control form-control-sm").attr("type","text").attr("id","presets_select").attr("name","patient_name");
+        var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for","patient_name").html(`Nr.${this.index+1}`);
+        var _input = $("<input/>").addClass("form-control ").attr("type","text").attr("id","presets_select").attr("name","patient_name");
         _input.attr("placeholder","Patient Name (GDPR!)")
         _input.val(this.patient_name);
         
@@ -345,7 +348,7 @@ class PETPatient {
         for (let index = 0; index < this.timings.length; index++) {
             const orig_timing = this.timings[index];
             var timing_label = `Timing of the ${index+2}. measurement`;
-            var _timing_input = $("<input/>").addClass("form-control form-control-sm flex-fill").attr("name","timings").attr("type","numeric").attr("step",1).attr("index",index);
+            var _timing_input = $("<input/>").addClass("form-control  flex-fill").attr("name","timings").attr("type","numeric").attr("step",1).attr("index",index);
             _timing_input.attr("data-bs-toggel","tooltip").attr("data-bs-placement","top").attr("title",timing_label);
             if(index>0){
                 _timing_input.addClass("ms-1")
@@ -358,6 +361,7 @@ class PETPatient {
                 let val = event.target.value;
                 if(val==""){
                     $(_timing_input).val(0);
+                    val = 0;
                 }
                 let number_value = parseInt(val);
                 if(isNaN(number_value)){
@@ -382,10 +386,30 @@ class PETPatient {
 
         $(container).addClass("d-flex flex-column");
 
-        var name_block = $("<div/>").attr("id","name_block").addClass("row mb-1");
-        var preset_block = $("<div/>").attr("id","preset_block").addClass("row mb-1");
-        var start_time_block = $("<div/>").attr("id","start_time_block").addClass("row mb-1");
+        var name_block = $("<div/>").attr("id","name_block").addClass("d-flex");
+        var preset_block = $("<div/>").attr("id","preset_block").addClass("d-flex");
+        var start_time_block = $("<div/>").attr("id","start_time_block").addClass("d-flex");
     
+        
+        var main_props = $("<div/>");
+        var first_row = $("<div/>").addClass("row mb-2");
+
+        first_row.append(name_block.addClass("col-md-6"));
+        first_row.append(start_time_block.addClass("col-md-6"));
+        main_props.append(first_row);
+        
+
+        var second_row = $("<div/>").addClass("row mb-2");
+        second_row.append(preset_block.addClass("col-md-6"));
+        var details_btn = $("<button/>").addClass("btn btn-outline-dark w-100").html("Details");
+        details_btn.attr("data-bs-toggle","collapse").attr("data-bs-target",`#${this.patient_details_name}`);
+        second_row.append($("<div/>").addClass("col-md-6").append(details_btn));
+
+
+        main_props.append(second_row);
+        
+        $(container).append(main_props);
+
         var number_of_scans_block = $("<div/>").attr("id","number_of_scans_block").addClass("row mb-1");
         var timing_block = $("<div/>").addClass("row mb-1 d-flex");
         var inj_delay_block = $("<div/>").attr("id","inj_delay_block").addClass("row mb-1");
@@ -397,23 +421,19 @@ class PETPatient {
         var start_delay_block = $("<div/>").attr("id","start_delay_block").addClass("row mb-1");
         var end_delay_block  = $("<div/>").attr("id","end_delay_block").addClass("row mb-1");
 
-        container.append(name_block);
-        container.append(preset_block);        
-        container.append(start_time_block);
-        
+        var details_container = $("<div/>").addClass("collapse").attr("id",this.patient_details_name);
+        var details_content = $("<div/>").addClass("card card-body");
 
-        container.append(number_of_scans_block);
-        container.append(timing_block);
-        container.append(inj_delay_block);
-        
+        details_content.append(number_of_scans_block);
+        details_content.append(timing_block);
+        details_content.append(inj_delay_block);
+        details_content.append(number_of_fovs_block);
+        details_content.append(fov_duration_block);
+        details_content.append(start_delay_block);
+        details_content.append(end_delay_block);
 
-        container.append(number_of_fovs_block);
-        container.append(fov_duration_block);
-        
-        container.append(start_delay_block);
-        container.append(end_delay_block);
-
-        this.container.append(container);
+        details_container.append(details_content);
+        $(container).append(details_container);
 
         this.#show_name_block(name_block);
         this.#show_presets_block(preset_block);
@@ -422,7 +442,7 @@ class PETPatient {
         simple_dynamic_input_time(
             start_time_block,
             "pet_start",
-            "PET start time",
+            "PET start",
             5,
             null,
             null,
@@ -678,8 +698,8 @@ class PETPatient {
         }
         this.container = $(container);
 
-        this.params_div = $("<div/>").addClass("p-1 col-4");
-        this.slider_div = $("<div/>").addClass("p-3 col-8");
+        this.params_div = $("<div/>").addClass("ps-3 p-1 col-4");
+        this.slider_div = $("<div/>").addClass("px-3 py-1 col-8");
         
         
         container.append(this.params_div);

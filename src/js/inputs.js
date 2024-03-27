@@ -4,7 +4,7 @@ function dynamicRangeInput(container, name, label, default_value, arg = null, on
 
     var group_container = $("<div/>").addClass("input-group");
     
-    var _input = $("<input/>").addClass("form-range w-50 mt-1 me-2 custom-bs-slider");
+    var _input = $("<input/>").addClass("form-range w-50 mt-1 me-2 custom-bs-slider mt-2");
     _input.attr("type","range").attr("id",name+"Input").attr("name",name).attr("data-name",name).attr("data-label",label);
     $(_input).attr("data-value","");
 
@@ -14,7 +14,7 @@ function dynamicRangeInput(container, name, label, default_value, arg = null, on
 
     group_container.append(_input)
 
-    var current =$("<input/>").addClass("form-control form-control-sm").attr("type","numeric").attr("id","currentValue");
+    var current =$("<input/>").addClass("form-control ").attr("type","numeric").attr("id","currentValue");
 
     $(current).val(default_value);
     if(arg.hasOwnProperty("step")) current.attr("step",arg.step);
@@ -107,7 +107,7 @@ function simple_dynamic_input_time(container, name, label, interval = 5, min_tim
     if(default_time === null) default_time = moment(Parapet.default_time,"HH:mm").format("HH:mm");
     
     var _time_label = $("<small/>").addClass("col-md-3 col-form-label").attr("for","pet_start").html(label);
-    var _time_input = $("<input/>").addClass("form-control form-control-sm").attr("id",name+"_input").attr("name",name);
+    var _time_input = $("<input/>").addClass("form-control ").attr("id",name+"_input").attr("name",name);
 
     container.append(_time_label);
     container.append($("<div/>").append(_time_input).addClass("col-md-9"));

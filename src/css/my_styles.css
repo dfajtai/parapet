@@ -95,20 +95,20 @@
 
 
 .form-range::-moz-range-thumb {
-    width: .7rem; /* Set the width of the thumb */
-    height: .7rem; /* Ensure the height is auto so it maintains aspect ratio */
+    width: .7rem; 
+    height: .7rem; 
+
 }
 .form-range::-moz-range-track {
     background: white;
     border: #adb5bd solid 1px;
     height: 0.2rem;
-    
 }
 
 
 .form-range::-webkit-slider-thumb {
-    width: .7rem; /* Set the width of the thumb */
-    height: .7rem;/* Ensure the height is auto so it maintains aspect ratio */
+    width: .7rem; 
+    height: .7rem;
 }
 .form-range::-webkit-slider-track {
     background: white;
@@ -117,11 +117,11 @@
 }
 
 .form-range::-ms-thumb {
-    width: .7rem; /* Set the width of the thumb */
-    height: .7rem; /* Ensure the height is auto so it maintains aspect ratio */
+    width: .7rem; 
+    height: .7rem; 
 }
 .form-range::-ms-track{
     background: white;
     border: #adb5bd solid 1px;
     height: 0.2rem;
-}
+} 
