@@ -836,7 +836,7 @@ class PETPatient {
                 var vals = slider.noUiSlider.get(true);
                 var start_min = vals[0]+this.first_scan_start_delay;
                 var pet_start = moment(Parapet.work_start,"HH:mm").add(start_min,"minutes");
-                this.inj_time = pet_start.subtract(this.first_scan_timing).format("HH:mm");
+                this.inj_time = pet_start.subtract(this.first_scan_timing,"minutes").format("HH:mm");
                 this.update_params_gui();
             }
         }.bind(this));
