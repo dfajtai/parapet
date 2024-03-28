@@ -1,10 +1,10 @@
-function dynamicRangeInput(container, name, label, default_value, arg = null, on_change = null){
+function dynamicRangeInput(container, name, label, default_value, arg = null, on_change = null, trigger_change = false){
     var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for",name+"Input").html(label);
     // var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for",name+"Input").html(`<small>${label}</small>`);
 
     var group_container = $("<div/>").addClass("input-group");
     
-    var _input = $("<input/>").addClass("form-range w-50 mt-1 me-2 custom-bs-slider mt-2");
+    var _input = $("<input/>").addClass("form-range w-75 mt-1 me-2 custom-bs-slider mt-2");
     _input.attr("type","range").attr("id",name+"Input").attr("name",name).attr("data-name",name).attr("data-label",label);
     $(_input).attr("data-value","");
 
@@ -45,7 +45,9 @@ function dynamicRangeInput(container, name, label, default_value, arg = null, on
         group_container.append(unit);
     }
 
-    $(_input).val(default_value).trigger("change");
+    if(trigger_change) $(_input).val(default_value).trigger("change");
+    else  $(_input).val(default_value);
+
 
     container.append(_label);
     container.append($("<div/>").addClass("col-md-9").append(group_container));

@@ -1,5 +1,5 @@
 class Parapet {
-    static number_of_patients = 3;
+    static number_of_patients = 1;
     static work_start = moment("08:00","HH:mm");
     static work_end = moment("16:00","HH:mm");
     static default_time = this.work_start;
@@ -31,7 +31,8 @@ class Parapet {
         }
         else if(Parapet.patients.length<new_count){
             for (let index = Parapet.patients.length; index < new_count; index++) {
-                var new_patient = new PETPatient(Parapet.default_time);
+                var new_patient = new PETPatient();
+                new_patient.add_scan();
                 new_patient.pushToPatients();
             }
         }
@@ -64,7 +65,8 @@ class Parapet {
           { min: 1, max: 10, step: 1 },
           function (val) {
             Parapet.updatePatientCount(parseInt(val));
-          }
+          },
+          true
         );
 
 
@@ -119,7 +121,10 @@ class Parapet {
         );
 
         config_container.append(work_end_block);
-
+        
+        if(PETPatient.presets==null){
+            PETPatient.create_presets();
+        }
 
         container.append(config_container);
 
@@ -129,7 +134,7 @@ class Parapet {
         $.each(Parapet.patients,function (patient_index, patient) { 
             if(patient instanceof PETPatient){
                 if(patient.container)  patient.create_GUI(patient.container);
-                console.log("updated");
+                // console.log("updated");
             }
         })
     }
@@ -142,7 +147,8 @@ class Parapet {
 
         for (let index = 0; index < this.patients.length; index++) {
             const patient = this.patients[index];
-            var patient_container = $("<div/>").attr("id",`patient_${index+1}`).addClass("row p-2 m-1 shadow-sm").css("border","#ced4da 0.5px solid");
+            var patient_container = $("<div/>").attr("id",`patient_${index+1}`).addClass("d-flex flex-column p-2 m-1 shadow-sm");
+            patient_container.css("border","#ced4da 0.5px solid");
             patient_container.css("background","#f8f9fa");;
 
             if(this.patients_container.find(`#patient_${index+1}`).length == 0){
@@ -160,55 +166,261 @@ class Parapet {
 
 }
 
+class PETScan {
+    constructor(timing = 0, number_of_fovs =1 , fov_duration = 10,
+        start_delay = 2, end_delay = 2){
+            this.timing = timing;
+            this.number_of_fovs = number_of_fovs;
+            this.fov_duration = fov_duration;
+            this.start_delay = start_delay;
+            this.end_delay = end_delay;
+
+            this.visible = false;
+            this.scan_index = null;
+            this.patient_index = null;
+
+            this.param_keys = Object.keys(this);
+
+            this.container = null;
+
+            this.scan_start = null;
+            this.scan_end = null;
+            this.pet_start = null;
+    }
+    
+    copy_params(scan_preset){
+        if(scan_preset instanceof PETScan){
+            $.each(scan_preset.param_keys,
+                function(index,key){
+                    this[key] = scan_preset[key];
+                }.bind(this));
+        }
+    }
+    
+    calculate_scale_params(start, sanitize = true){
+        let start_time = moment(start,"HH:mm");
+        let scale_start_time = moment(Parapet.work_start,"HH:mm");
+
+        var scale_params = [];
+
+        start_time = moment(start_time).add(this.timing,"minutes");
+
+        var scan_start = moment(start_time).subtract(this.start_delay,"minutes");
+        var scan_end = moment(start_time).add(this.number_of_fovs * this.fov_duration + this.end_delay,"minutes");
+        
+        this.scan_start = moment(scan_start,"HH:mm").format("HH:mm");
+        this.scan_end = moment(scan_end,"HH:mm").format("HH:mm");
+        this.pet_start = moment(start_time,"HH:mm").format("HH:mm");
+        
+
+        var start_point = scan_start.diff(scale_start_time,"minutes");
+        var end_point = scan_end.diff(scale_start_time,"minutes");
+
+        if(sanitize & start_point<0){
+            end_point +=-start_point;
+            start_point = 0;
+        }
+
+        scale_params.push(start_point,end_point);
+        return scale_params;
+    }
+
+    create_param_gui(container){
+        this.container = container;
+
+        $(container).addClass("d-flex flex-column");
+
+        $(container).css("border","#ced4da 0.5px solid");
+        $(container).append($("<span/>").html(`Scan Nr.${this.scan_index+1}`).addClass("text-white bg-dark p-2 mb-1 w-100"))
+        
+        var scans_params_container = $("<div/>").addClass("d-flex flex-column w-100 p-3");
+        // scans_params_container.attr("id",`patient_${this.index}_scan_${this.scan_index}`);
+        $(container).append(scans_params_container);
+
+
+        var timing_block = $("<div/>").attr("id","timing_block").addClass("row mb-1 d-flex");
+        var number_of_fovs_block = $("<div/>").attr("id","number_of_fovs_block").addClass("row mb-1");
+        var fov_duration_block = $("<div/>").attr("id","fov_duration_block").addClass("row mb-1");
+
+        var start_delay_block = $("<div/>").attr("id","start_delay_block").addClass("row mb-1");
+        var end_delay_block  = $("<div/>").attr("id","end_delay_block").addClass("row mb-1");
+
+        
+        $(scans_params_container).append(timing_block);
+        $(scans_params_container).append(number_of_fovs_block);
+        $(scans_params_container).append(fov_duration_block);
+        $(scans_params_container).append(start_delay_block);
+        $(scans_params_container).append(end_delay_block);
+
+        this.visible = true;
+
+        dynamicRangeInput(timing_block,
+            "timing",
+            "Timing [min]",
+            this.timing,
+            {"min":0,"max":180,"step":1},
+            function(val){
+                this.timing = parseInt(val);
+            }.bind(this))
+        
+        dynamicRangeInput(number_of_fovs_block,
+            "number_of_fovs",
+            "Number of FOVs",
+            this.number_of_fovs,
+            {"min":1,"max":12,"step":1},
+            function(val){
+                this.number_of_fovs = parseInt(val);
+            }.bind(this))
+
+        dynamicRangeInput(fov_duration_block,
+            "fov_duration",
+            "FOV dur. [min]",
+            this.fov_duration,
+            {"min":0,"max":15,"step":1},
+            function(val){
+                this.fov_duration = parseInt(val);
+            }.bind(this))       
+        
+
+        dynamicRangeInput(start_delay_block,
+            "start_delay",
+            "Start delay [min]",
+            this.start_delay,
+            {"min":0,"max":15,"step":1},
+            function(val){
+                this.start_delay = parseInt(val);
+            }.bind(this))
+        
+        dynamicRangeInput(end_delay_block,
+            "end_delay",
+            "End delay [min]",
+            this.end_delay,
+            {"min":0,"max":20,"step":1},
+            function(val){
+                this.end_delay = parseInt(val);
+            }.bind(this))   
+        
+    }
+
+    set_visibility(new_visibility_val){
+        this.visible = new_visibility_val;
+        if(this.visible){
+            if(this.container){
+                this.container.removeClass("d-none");
+            }
+        }
+        else{
+            if(this.container){
+                this.container.addClass("d-none");
+            }
+        }
+    }
+}
+
 
 
 class PETPatient {
+    static presets = null;
 
-    static presets = {
-        fdg: new PETPatient(null, 3, 5, 90, 1, [], 5, 15),
-        fdg_wb: new PETPatient(null, 7, 5, 90, 1, [], 5, 15),
-        dopa: new PETPatient(null, 3, 5, 90, 1, [], 5, 15),
-        dopa_wb: new PETPatient(null, 7, 5, 90, 1, [], 5, 15),
-        choline: new PETPatient(null, 3, 5, 10, 2, [60], 5, 5),
-        choline_prostata: new PETPatient(null, 3, 5, 2, 2, [60], 5, 5),
-        // test: new PETPatient(null, 3, 5, 2, 3, [30,60], 5, 5),
-    };
+    static create_presets(){
+        var fdg = new PETPatient(1,null,90);
+        fdg.add_scan(new PETScan(null,3,5,5,5));
+        var fdg_wb = new PETPatient(1,null,90);
+        fdg_wb.add_scan(new PETScan(null,7,5,5,5));
+
+        var dopa = new PETPatient(1,null,90);
+        dopa.add_scan(new PETScan(null,3,5,5,5));
+        var dopa_wb = new PETPatient(1,null,90);
+        dopa_wb.add_scan(new PETScan(null,7,5,5,5));
+
+        var choline = new PETPatient(2,null,10);        
+        choline.add_scan(new PETScan(null,3,5,5,5));
+        choline.add_scan(new PETScan(60,3,5,5,5));
+
+        var choline_prostate = new PETPatient(2,null,2);
+        choline_prostate.add_scan(new PETScan(null,3,5,5,5));
+        choline_prostate.add_scan(new PETScan(60,3,5,5,5));
+
+        PETPatient.presets = {
+            fgd:fdg,
+            fdg_wb:fdg_wb,
+            dopa:dopa,
+            dopa_wb:dopa_wb,
+            choline:choline,
+            choline_prostate:choline_prostate
+        }
+
+        // console.log(PETPatient.presets);
+    }
 
 
-
-    constructor (pet_start = null, number_of_fovs =1 , fov_duration = 10, inj_delay = 10,
-                 number_of_scans = 1,  timings = [], start_delay = 2, end_delay = 2 ){
-
-        if(pet_start === null) pet_start = Parapet.default_time;
-        this.pet_start = moment(pet_start,"HH:mm").format("HH:mm");
-
-        this.inj_delay = inj_delay;
-
-        this.number_of_fovs = number_of_fovs;
-        this.fov_duration = fov_duration;
-
+    constructor (number_of_scans = 1, inj_time = null){
         this.number_of_scans = number_of_scans;
 
-        if(timings === null){
-            this.timings = new Array(number_of_scans-1).fill(0);
+        if(inj_time === null) inj_time = Parapet.default_time;
+        this.inj_time = moment(inj_time,"HH:mm").format("HH:mm");
+       
+        this.scans = [];    
+    }
+
+
+    get first_scan_timing(){
+        if(this.scans.length>0){
+            const scan = this.scans[0];
+            if(scan instanceof PETScan){
+                return scan.timing;
+            }
+        }
+    }
+
+    get first_scan_start_delay(){
+        if(this.scans.length>0){
+            const scan = this.scans[0];
+            if(scan instanceof PETScan){
+                return scan.start_delay;
+            }
+        }
+    }
+
+    get pet_start(){
+        if(this.scans.length>0){
+            const scan = this.scans[0];
+            if(scan instanceof PETScan){
+                scan.calculate_scale_params();
+                return moment(scan.pet_start,"HH:mm").format("HH:mm");
+            }
+        }
+    }
+
+    get last_scan_end(){
+        if(this.scans.length>0){
+            const scan = this.scans[this.number_of_scans-1];
+            if(scan instanceof PETScan){
+                return moment(scan.scan_end,"HH:mm").format("HH:mm");
+            }
+        }
+        return moment(this.inj_time,"HH:mm").format("HH:mm");
+    }
+
+
+    add_scan(scan=null){
+        var best_timing = moment(this.last_scan_end,"HH:mm").diff(moment(this.inj_time,"HH:mm"),"minutes");
+
+        if(scan instanceof PETScan){
+            if(scan.timing==null){
+                scan.timing =best_timing;
+            }
+            scan.scan_index =this.scans.length;
+            this.scans.push(scan);
+             
         }
         else{
-            this.timings = timings;
+            var new_scan = new PETScan(best_timing);
+            new_scan.scan_index =this.scans.length;
+            this.scans.push(new_scan);
         }
-        
-
-        
-        if(this.number_of_scans-1 != this.timings.length){
-            throw new RangeError("A timing is required for every subsequent measurement.");
-        }
-
-        this.start_delay = start_delay;
-        this.end_delay = end_delay;
-
-
-        this.param_keys = Object.keys(this);
-    
     }
+
 
     pushToPatients(){
         this.patient_name = "";
@@ -217,9 +429,13 @@ class PETPatient {
         this.index =  Parapet.patients.length;
         this.slider_name = `patient_${this.index}_slider`;
 
-        this.slider_div = null;
         this.slider = null;
+
+        this.slider_div = null;
         this.params_div = null;
+
+        this.details_div = null;
+        this.scan_details_div = null;
 
         this.visible = true;    
 
@@ -227,20 +443,42 @@ class PETPatient {
 
         this.patient_details_name = `patient_${this.index+1}_details`;
 
+
         this.slider_dragged = false;
         this.slider_pre_drag_starts = null;
 
         Parapet.patients.push(this);
 
-
+        
     }
+
 
     initFromPreset(preset_name){
         if(preset_name in PETPatient.presets){
-            $.each(PETPatient.presets[preset_name].param_keys,
-                function(index,key){
-                    if(key!="pet_start") this[key] = PETPatient.presets[preset_name][key];
-                }.bind(this))
+            var preset = PETPatient.presets[preset_name];
+            if(preset instanceof PETPatient){
+                this.number_of_scans = preset.number_of_scans;
+                this.scans = [];
+
+                if(this.scan_details_div){
+                    $(this.scan_details_div).empty();
+                }
+
+                $.each(preset.scans,function (scan_index,scan_preset) { 
+                    var new_scan = new PETScan();
+                    new_scan.copy_params(scan_preset);
+                    this.add_scan(new_scan);
+                    this.#create_scan_detail_block(new_scan);
+
+                }.bind(this));
+            }
+            this.create_slider_gui(this.slider_div);
+
+            if(this.details_div){
+                let nuber_of_scans_div = $(this.details_div).find(`[name="number_of_scans"]`);
+                nuber_of_scans_div.val(this.number_of_scans);
+            }
+            
         }
     }
 
@@ -260,31 +498,18 @@ class PETPatient {
 
     update_params_gui(){
         if(this.params_div){
-            // console.log(this.params_div)
-            $.each(this.param_keys,function(index, key){     
-                // console.log(key);          
-                var param_div = this.params_div.find(`[name="${key}"]`);
-                // console.log(param_div);
+            let inj_time_div = this.params_div.find(`[name="inj_time"]`);
+            inj_time_div.val(moment(this.inj_time,"HH:mm").format("HH:mm"));
 
-                switch (param_div.length) {
-                    case 0:
-                        break;
-                    
-                    case 1:
-                        param_div.first().val(this[key]).trigger("change");
-                        break;
-                    
-                    default:
-                        // $.each(param_div,function(_index, element){
-                        //     $(element).val(this[key][parseInt($(element).attr("index"))]).trigger("change");
-                        // }.bind(this))
-                        break;
-                }
-            }.bind(this))
+
         }
     }
 
     #show_presets_block(container,label = "Preset"){
+        if(PETPatient.presets==null){
+            PETPatient.create_presets();
+        }
+
         var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for","presets").html(label);
         var _select_dropdow = $("<select/>").addClass("form-select").attr("type","text").attr("id","presets_select").attr("name","presets");
         _select_dropdow.append($("<option/>").html("Choose preset...").prop('selected',true).attr("value","").attr("disabled",true));
@@ -321,70 +546,56 @@ class PETPatient {
 
     }
 
-    draw_timig_block(container){
-        if(this.timings.length == 0){
-            $(container).addClass("d-none");
-            return;
-        }
-        else{
-            $(container).removeClass("d-none");
-        }
+    #create_scan_detail_block(scan){
+        if(scan instanceof PETScan){
+            if(this.scan_details_div){
+                var new_scans_container = $("<div/>").addClass("d-flex w-100 m-1 flex-column");
+                $(this.scan_details_div).append(new_scans_container);
+            
+                scan.create_param_gui(new_scans_container);
 
-        var _timing_block = $(container).find("#timing_block");
-        if(_timing_block.length==0){
-            var _label = $("<label/>").html("Timing(s) [min]").addClass("col-form-label me-2").css('border','').attr("for","timing_block");
-            container.append($("<div/>").addClass("col-md-3").append(_label));
-
-            var _timing_block = $("<div/>").attr("id","timing_block").addClass("d-flex");
-            container.append($("<div/>").addClass("col-md-9").append(_timing_block));
-
-        }
-        else{
-            _timing_block = _timing_block.first();
-        }
-
-        _timing_block.empty();
-
-        for (let index = 0; index < this.timings.length; index++) {
-            const orig_timing = this.timings[index];
-            var timing_label = `Timing of the ${index+2}. measurement`;
-            var _timing_input = $("<input/>").addClass("form-control  flex-fill").attr("name","timings").attr("type","numeric").attr("step",1).attr("index",index);
-            _timing_input.attr("data-bs-toggel","tooltip").attr("data-bs-placement","top").attr("title",timing_label);
-            if(index>0){
-                _timing_input.addClass("ms-1")
-            }
-            _timing_input.val(orig_timing);
-            _timing_block.append(_timing_input);
-
-
-            $(_timing_input).on("change",function(event){
-                let val = event.target.value;
-                if(val==""){
-                    $(_timing_input).val(0);
-                    val = 0;
-                }
-                let number_value = parseInt(val);
-                if(isNaN(number_value)){
-                    alert("invalid timing");
-                    $(_timing_input).val(0);
-                }
-                else{
-                    $(_timing_input).val(number_value);
-                    this.timings[index] = number_value;
+                new_scans_container.find("input").on("change",function(){
                     this.paramsToSlider();
-                }
-            }.bind(this))
+                }.bind(this))
+            }  
         }
-
-
-
     }
 
-    create_parameter_gui(container){
+    create_show_hide_scan_details(new_num_of_scans){                 
+        if(new_num_of_scans>this.scans.length){
+            for (let index = this.scans.length; index < new_num_of_scans; index++) {
+                var new_scan = new PETScan();
+                this.add_scan(new_scan);
+                this.#create_scan_detail_block(new_scan);
+            }
+        }
+        else{
+            if(new_num_of_scans<this.number_of_scans){
+                for (let index = this.number_of_scans; index > new_num_of_scans; index--) {
+                    let scan = this.scans[index-1];
+                    if(scan instanceof PETScan){
+                        scan.set_visibility(false);
+                    }
+                    
+                }
+            }
+            else{
+                for (let index = this.number_of_scans; index <= new_num_of_scans; index++) {
+                    let scan = this.scans[index-1];
+                    if(scan instanceof PETScan){
+                        scan.set_visibility(true);
+                    }
+                }
+            }
+        }
+        this.number_of_scans = new_num_of_scans;
+    }
 
-        $(container).empty();
+    create_parameter_gui(params_container, details_container){
+        $(params_container).empty();
+        $(details_container).empty();
 
-        $(container).addClass("d-flex flex-column");
+        $(params_container).addClass("d-flex flex-column");
 
         var name_block = $("<div/>").attr("id","name_block").addClass("d-flex");
         var preset_block = $("<div/>").attr("id","preset_block").addClass("d-flex");
@@ -403,57 +614,65 @@ class PETPatient {
         second_row.append(preset_block.addClass("col-md-6"));
         var details_btn = $("<button/>").addClass("btn btn-outline-dark w-100").html("Details");
         details_btn.attr("data-bs-toggle","collapse").attr("data-bs-target",`#${this.patient_details_name}`);
+
         second_row.append($("<div/>").addClass("col-md-6").append(details_btn));
 
 
         main_props.append(second_row);
         
-        $(container).append(main_props);
+        $(params_container).append(main_props);
 
         var number_of_scans_block = $("<div/>").attr("id","number_of_scans_block").addClass("row mb-1");
-        var timing_block = $("<div/>").addClass("row mb-1 d-flex");
-        var inj_delay_block = $("<div/>").attr("id","inj_delay_block").addClass("row mb-1");
+        // var inj_delay_block = $("<div/>").attr("id","inj_delay_block").addClass("row mb-1");
+      
 
-
-        var number_of_fovs_block = $("<div/>").attr("id","number_of_fovs_block").addClass("row mb-1");
-        var fov_duration_block = $("<div/>").attr("id","fov_duration_block").addClass("row mb-1");
-
-        var start_delay_block = $("<div/>").attr("id","start_delay_block").addClass("row mb-1");
-        var end_delay_block  = $("<div/>").attr("id","end_delay_block").addClass("row mb-1");
-
-        var details_container = $("<div/>").addClass("collapse").attr("id",this.patient_details_name);
+        $(details_container).addClass("collapse").attr("id",this.patient_details_name);
         var details_content = $("<div/>").addClass("card card-body");
 
-        details_content.append(number_of_scans_block);
-        details_content.append(timing_block);
-        details_content.append(inj_delay_block);
-        details_content.append(number_of_fovs_block);
-        details_content.append(fov_duration_block);
-        details_content.append(start_delay_block);
-        details_content.append(end_delay_block);
+        $(details_container).on("show.bs.collapse",function(){
+            details_btn.removeClass("btn-outline-dark").addClass("btn-dark");
+        })
 
-        details_container.append(details_content);
-        $(container).append(details_container);
+        $(details_container).on("hide.bs.collapse",function(){
+            details_btn.addClass("btn-outline-dark").removeClass("btn-dark");
+        })
+
+        var details_first_row = $("<div/>").addClass("row");
+        details_first_row.append($("<div/>").addClass("col-6").append(number_of_scans_block));
+        // details_first_row.append($("<div/>").addClass("col-6").append(inj_delay_block));
+        details_content.append(details_first_row);
+
+        this.scan_details_div = $("<div/>").addClass("d-flex w-100");
+        details_content.append(this.scan_details_div);
+        
+
+        $(details_container).append(details_content);
 
         this.#show_name_block(name_block);
         this.#show_presets_block(preset_block);
-        
+        for (let index = 0; index < this.scans.length; index++) {
+            const scan = this.scans[index];
+            if(scan instanceof PETScan){
+                this.#create_scan_detail_block(scan);
+            }
+            
+        }
         
         simple_dynamic_input_time(
             start_time_block,
-            "pet_start",
-            "PET start",
+            "inj_time",
+            "Inj. time",
             5,
             null,
             null,
             moment(Parapet.work_start,"HH:mm").format("HH:mm"),
             function (val) {
                 if(val==""){
-                    val = moment(this.pet_start, "HH:mm").format("HH:mm");
+                    val = moment(this.inj_time, "HH:mm").format("HH:mm");
                     $(start_time_block).find("input").val(val);
                 }
 
-                this.pet_start = moment(val, "HH:mm").format("HH:mm");
+                this.inj_time = moment(val, "HH:mm").format("HH:mm");
                 this.paramsToSlider();
             }.bind(this)
         );
@@ -464,107 +683,47 @@ class PETPatient {
             this.number_of_scans,
             {"min":1,"max":3,"step":1},
             function(val){
-                this.number_of_scans = parseInt(val);
-
-                if(this.number_of_scans-1 > this.timings.length){
-                    for (let index = this.timings.length; index < this.number_of_scans-1; index++) {
-                        this.timings.push(0);
-                    }
-                }
-                else if(this.number_of_scans-1 < this.timings.length)
-                {
-                    for (let index = this.number_of_scans-1; index <this.timings.length; index++) {
-                        this.timings.pop();
-                    }
-                }
-                this.draw_timig_block(timing_block);
-                if(this.slider_div){
-                    this.create_slider_gui(this.slider_div);
-                    // this.paramsToSlider();
-                }
+                var new_num_of_scans = parseInt(val);
+                this.create_show_hide_scan_details(new_num_of_scans);
+                this.create_slider_gui(this.slider_div);
                 
             }.bind(this))
         
         
-        dynamicRangeInput(inj_delay_block,
-            "inj_delay",
-            "Inj. delay [min]",
-            this.inj_delay,
-            {"min":0,"max":90,"step":1},
-            function(val){
-                this.inj_delay = parseInt(val);
-            }.bind(this))                   
-        
-        dynamicRangeInput(number_of_fovs_block,
-            "number_of_fovs",
-            "Number of FOVs",
-            this.number_of_fovs,
-            {"min":1,"max":8,"step":1},
-            function(val){
-                this.number_of_fovs = parseInt(val);
-            }.bind(this))
-
-        dynamicRangeInput(fov_duration_block,
-            "fov_duration",
-            "FOV duration [min]",
-            this.fov_duration,
-            {"min":0,"max":15,"step":1},
-            function(val){
-                this.fov_duration = parseInt(val);
-            }.bind(this))       
+        // dynamicRangeInput(inj_delay_block,
+        //     "inj_delay",
+        //     "Inj. delay [min]",
+        //     this.inj_delay,
+        //     {"min":0,"max":90,"step":1},
+        //     function(val){
+        //         this.inj_delay = parseInt(val);
+        //     }.bind(this))   
+  
         
 
-        dynamicRangeInput(start_delay_block,
-            "start_delay",
-            "Start delay [min]",
-            this.start_delay,
-            {"min":0,"max":15,"step":1},
-            function(val){
-                this.start_delay = parseInt(val);
-            }.bind(this))
-        
-        dynamicRangeInput(end_delay_block,
-            "end_delay",
-            "End delay [min]",
-            this.end_delay,
-            {"min":0,"max":15,"step":1},
-            function(val){
-                this.end_delay = parseInt(val);
-            }.bind(this))     
-        
+        $(params_container).find("input").on("change",function(){
+            this.paramsToSlider();
+        }.bind(this))
 
-        $(container).find("input").on("change",function(){
+        $(details_first_row).find("input").on("change",function(){
             this.paramsToSlider();
         }.bind(this))
     }
 
     paramsToSliderParams(sanitize = true){
         var start = [];
-        var pet_start = moment(this.pet_start,"HH:mm");
-
         var connect = [false];
 
         for (let index = 0; index < this.number_of_scans; index++) {
             connect.push(true,false);
                         
-            var measurement_start = moment(pet_start).subtract(this.start_delay,"minutes");
-            var measurement_end = moment(pet_start).add(this.number_of_fovs * this.fov_duration + this.end_delay,"minutes");
+            let scan = this.scans[index]
+            if(scan instanceof PETScan){
+                var scan_params = scan.calculate_scale_params(this.inj_time, sanitize = sanitize);
 
-            if(index>0){
-                var timing_delay = this.timings[index-1];
-                measurement_start = measurement_start.add(timing_delay,"minutes");
-                measurement_end = measurement_end.add(timing_delay,"minutes");
+
+                start.push.apply(start,scan_params);
             }
-            
-            var start_point = measurement_start.diff(moment(Parapet.work_start,"HH:mm"),"minutes");
-            var end_point = measurement_end.diff(moment(Parapet.work_start,"HH:mm"),"minutes");
-
-            if(sanitize & start_point<0){
-                end_point +=-start_point;
-                start_point = 0;
-            }
-
-            start.push(start_point,end_point);
         }
 
         return {start:start,connect:connect}
@@ -581,19 +740,14 @@ class PETPatient {
         if(this.slider){
             const slider_vals = this.slider.noUiSlider.get(true);
             console.log(slider_vals);
-
         }
-        
-
     }
 
 
     create_slider_gui(container){
         $(container).empty();
-        var slider_element = $("<div/>").addClass("slider-box-handle slider-styled slider-hide  w-100").attr("id",this.slider_name);
-        container.append($("<div/>").append(slider_element).css("height","65pt").addClass("w-100"));
-        this.container.append(container);
-
+        var slider_element = $("<div/>").addClass("slider-box-handle slider-styled slider-hide").attr("id",this.slider_name);
+        container.append($("<div/>").append(slider_element).css("height","65pt"));
         
         var slider = document.getElementById(this.slider_name);
         this.slider = slider;
@@ -667,12 +821,12 @@ class PETPatient {
         slider.noUiSlider.on('start', function () { 
             this.slider_dragged = false;
             this.slider_pre_drag_starts = slider.noUiSlider.get(true);
-            console.log(this.slider_pre_drag_starts);
+            // console.log(this.slider_pre_drag_starts);
         }.bind(this));
 
         slider.noUiSlider.on('drag', function () { 
             this.slider_dragged = true;
-            console.log("drag");
+            // console.log("drag");
         }.bind(this));
 
         slider.noUiSlider.on('end', function () { 
@@ -680,8 +834,9 @@ class PETPatient {
                 slider.noUiSlider.set(this.slider_pre_drag_starts);
             else{
                 var vals = slider.noUiSlider.get(true);
-                var start_min = vals[0]+this.start_delay;
-                this.pet_start = moment(Parapet.work_start,"HH:mm").add(start_min,"minutes").format("HH:mm");
+                var start_min = vals[0]+this.first_scan_start_delay;
+                var pet_start = moment(Parapet.work_start,"HH:mm").add(start_min,"minutes");
+                this.inj_time = pet_start.subtract(this.first_scan_timing).format("HH:mm");
                 this.update_params_gui();
             }
         }.bind(this));
@@ -698,16 +853,18 @@ class PETPatient {
         }
         this.container = $(container);
 
+        var fix_row = $("<div/>").addClass("row px-2");
         this.params_div = $("<div/>").addClass("ps-3 p-1 col-4");
         this.slider_div = $("<div/>").addClass("px-3 py-1 col-8");
+        this.details_div = $("<div/>").addClass("col-12 w-100");
         
-        
-        container.append(this.params_div);
-        container.append(this.slider_div);
-        
+        fix_row.append(this.params_div);
+        fix_row.append(this.slider_div);
+        container.append(fix_row);
+        container.append(this.details_div);
 
         
-        this.create_parameter_gui(this.params_div);
+        this.create_parameter_gui(this.params_div,this.details_div);
         this.create_slider_gui(this.slider_div);
         
 

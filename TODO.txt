@@ -1,0 +1,29 @@
+Serialization:
+
+1. serialize
+    - serialize scan
+    -> serialize patient
+
+2. convert to JSON
+3. load from JSON
+4. store in local storage
+5. load form local storage
+6. export to JSON
+7. load from JSON
+
+-------------------------------------------
+
+Printing:
+
+1. extract timings
+    - extract timings form scans
+    -> extract timings form patients
+2. build table - show in modal?
+3. print table to pdf
+
+-------------------------------------------
+
+Validation:
+
+1. check for overlaping timings
+2. create plot?
