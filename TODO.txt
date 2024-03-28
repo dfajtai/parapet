@@ -25,5 +25,6 @@ Printing:
 
 Validation:
 
+0. finalize checkbox? - only validate if finalized. 
 1. check for overlaping timings
 2. create plot?
