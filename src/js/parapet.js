@@ -130,6 +130,39 @@ class Parapet {
 
     }
 
+    static serializeParapetContent(){
+        var serialized_object = {number_of_patients: this.number_of_patients,
+                                work_start: this.work_start,
+                                wort_end : this.work_end};
+        var serialized_parients = []
+        for (let index = 0; index < this.patients.length; index++) {
+            const patient = this.patients[index];
+            if(patient instanceof PETPatient){
+            serialized_parients.push(patient.serializePatient())
+            }
+            
+        }
+        serialized_object["patients"] = serialized_parients;
+        
+        return JSON.stringify(serialized_object);
+    }
+
+    static initParapetFromJSON(){
+        
+    }
+    
+    static toLocalSotrage(){
+
+
+    }
+
+    static fromLocalStorage(){
+
+
+    }
+
+    
+
     static updateWorkHours(){
         $.each(Parapet.patients,function (patient_index, patient) { 
             if(patient instanceof PETPatient){
@@ -197,6 +230,17 @@ class PETScan {
         }
     }
     
+    serialize_scan(){
+        var serialized_object = {}
+        $.each(this.param_keys,
+            function(index,key){
+                serialized_object[key] = this[key];
+            }.bind(this));
+        
+        return serialized_object;
+
+    }
+
     calculate_scale_params(start, sanitize = true){
         let start_time = moment(start,"HH:mm");
         let scale_start_time = moment(Parapet.work_start,"HH:mm");
@@ -480,6 +524,24 @@ class PETPatient {
             }
             
         }
+    }
+
+    serializePatient(){
+        var serialized_object = {patient_name : this.patient_name,
+                                 number_of_scans : this.number_of_scans,
+                                 inj_time: this.inj_time
+        }
+        var serialized_scans = []
+        for (let index = 0; index < this.scans.length; index++) {
+            const scan = this.scans[index];
+            if(scan instanceof PETScan){
+                serialized_scans.push(scan.serialize_scan())
+            }
+            
+        }
+        serialized_object["scans"] =serialized_scans;
+        
+        return serialized_object;
     }
 
     set_visibility(new_visibility_val){

@@ -1,11 +1,11 @@
 Serialization:
 
 1. serialize
-    - serialize scan
-    -> serialize patient
+    - serialize scan                                                OK
+    -> serialize patient                                            OK
 
-2. convert to JSON
-3. load from JSON
+2. convert to JSON                                                  OK
+3. load from JSON                                                   
 4. store in local storage
 5. load form local storage
 6. export to JSON
