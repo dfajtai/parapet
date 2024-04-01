@@ -241,6 +241,37 @@ class Parapet {
         }
     }
 
+    static schedule_plot(alpha = 0.5){
+        // reformat data
+        var dataset = [];
+        
+        for (let patient_index = 0; patient_index < Parapet.number_of_patients; patient_index++) {
+            const patient = Parapet.patients[patient_index];
+            if(patient instanceof PETPatient){
+                
+                for (let scan_index = 0; scan_index < patient.number_of_scans; scan_index++) {
+                    const scan = patient.scans[scan_index];
+                    if(scan instanceof PETScan){
+                        var data = [{ x: scan.scan_start, y:0}, { x: scan.scan_end, y:0}];
+
+                        var _dataset = {
+                            label:`Patient Nr.${patient_index+1}, Scan ${scan_index+1}`,
+                            backgroundColor: patient.color,
+                            borderColor: patient.color,
+                            borderWidth: 5,
+                            pointRadius:5,
+                            data: data,
+                        }
+                        dataset.push(_dataset);
+                    }
+                }
+            }
+        }
+
+        dataset.sort((a, b) => a.data[0].x - b.data[0].x);
+        console.log(dataset);
+    }
+
 }
 
 class PETScan {
