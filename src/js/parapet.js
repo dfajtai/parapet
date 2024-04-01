@@ -195,7 +195,7 @@ class Parapet {
         Parapet.updatePatientCount(Parapet.number_of_patients);
     }
     
-    static toLocalSotrage(){
+    static toLocalStorage(){
         localStorage.setItem("parapet_content",Parapet.serializeParapetContent());
     }
 
@@ -245,6 +245,7 @@ class Parapet {
         // reformat data
         var dataset = [];
         
+
         for (let patient_index = 0; patient_index < Parapet.number_of_patients; patient_index++) {
             const patient = Parapet.patients[patient_index];
             if(patient instanceof PETPatient){
@@ -261,6 +262,8 @@ class Parapet {
                             borderWidth: 5,
                             pointRadius:5,
                             data: data,
+                            start: scan.scan_start,
+                            end: scan.scan_end
                         }
                         dataset.push(_dataset);
                     }
@@ -268,8 +271,41 @@ class Parapet {
             }
         }
 
-        dataset.sort((a, b) => a.data[0].x - b.data[0].x);
+        // sort dataset
+        dataset.sort((a, b) => a.start - b.start);
         console.log(dataset);
+
+        // jitter overlapping data
+        var baseline = 0;
+        var jitter_step = 0.1;
+        var sign = 1;
+        var jitter_level = 0;
+
+        
+
+        function assignOverlapLevels(intervals) {
+            // Sort intervals by start time
+            intervals.sort((a, b) => a.start - b.start);
+        
+            // Initialize an array to store the level of each interval
+            const levels = Array(intervals.length).fill(0);
+        
+            // Iterate through each interval and compare with others
+            for (let i = 0; i < intervals.length; i++) {
+                for (let j = i + 1; j < intervals.length; j++) {
+                    // Check for overlap
+                    if (intervals[i].end > intervals[j].start && intervals[i].start < intervals[j].end) {
+                        // If there's an overlap, increase the level of the current interval
+                        levels[j]++;
+                    }
+                }
+            }
+
+            return levels;
+        }
+
+        console.log(assignOverlapLevels(dataset))
+
     }
 
 }
@@ -324,24 +360,29 @@ class PETScan {
     }
 
     get scan_start(){
-        return this.pet_start.subtract(this.start_delay,"minutes");
+        var time =  moment(this.pet_start,"HH:mm").subtract(this.start_delay,"minutes");
+        return moment(time.format("HH:mm"),"HH:mm");
     }
 
     get scan_end(){
-        return this.pet_start.add(this.number_of_fovs * this.fov_duration + this.end_delay,"minutes");
+        var time =  moment(this.pet_start,"HH:mm").add(this.number_of_fovs * this.fov_duration + this.end_delay,"minutes");
+        return moment(time.format("HH:mm"),"HH:mm");
     }
 
     get pet_start(){
-        return this.inj_time.add(this.timing,"minutes");
+        var time =  moment(this.inj_time,"HH:mm").add(this.timing,"minutes");
+        return moment(time.format("HH:mm"),"HH:mm");
     }
 
     get pet_end(){
-        return this.pet_start.add(this.number_of_fovs * this.fov_duration,"minutes");
+        var time =  moment(this.pet_start,"HH:mm").add(this.number_of_fovs * this.fov_duration,"minutes");
+        return moment(time.format("HH:mm"),"HH:mm");
     }
 
     get inj_time(){
         if(this.patient instanceof PETPatient){
-            return moment(this.patient.inj_time,"HH:mm");
+            var time =  moment(this.patient.inj_time,"HH:mm");
+            return moment(time.format("HH:mm"),"HH:mm");
         }
         
     }
