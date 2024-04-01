@@ -5,19 +5,22 @@ Serialization:
     -> serialize patient                                            OK
 
 2. convert to JSON                                                  OK
-3. load from JSON                                                   
-4. store in local storage
-5. load form local storage
-6. export to JSON
-7. load from JSON
+3. load from JSON                                                   OK
+4. store in local storage                                           OK
+5. load form local storage                                          OK
+6. export to JSON                                                   OK
+7. load from JSON                                                   OK
+8. reset                                                            OK
+
++ GUI: save, re-load, export, load, reset
 
 -------------------------------------------
 
 Printing:
 
 1. extract timings
-    - extract timings form scans
-    -> extract timings form patients
+    - extract timings form scans                                    OK
+    -> extract timings form patients                                partially
 2. build table - show in modal?
 3. print table to pdf
 

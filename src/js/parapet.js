@@ -1,7 +1,7 @@
 class Parapet {
     static number_of_patients = 1;
-    static work_start = moment("08:00","HH:mm");
-    static work_end = moment("16:00","HH:mm");
+    static work_start = moment("08:00","HH:mm").format("HH:mm");
+    static work_end = moment("16:00","HH:mm").format("HH:mm");
     static default_time = this.work_start;
 
     static main_container = null;
@@ -15,11 +15,14 @@ class Parapet {
 
     static indicator_container = null;
 
-    static set_params(number_of_patients, work_start, work_end){
+
+    static set_params({number_of_patients, work_start, work_end}){
         this.number_of_patients = number_of_patients;
         this.work_start = work_start;
         this.work_end = work_end;
         this.default_time = this.work_start;
+
+        Parapet.updateParapetConfigGUI()
     }
 
     static updatePatientCount(new_count){
@@ -47,6 +50,13 @@ class Parapet {
 
     }
 
+    static updateParapetConfigGUI(){
+        var param_keys = Object.keys(Parapet);
+        param_keys.forEach(key => {
+            $(Parapet.parapet_config_container).find(`input[param="${key}"]`).val(Parapet[key]);
+        });
+    }
+
     static createParapetConfigGUI(container){
         container.empty();
 
@@ -68,7 +78,7 @@ class Parapet {
           },
           true
         );
-
+        number_of_patients_block.find("input").attr("param","number_of_patients");
 
         config_container.append(number_of_patients_block);
 
@@ -95,6 +105,7 @@ class Parapet {
                 }
           }
         );
+        work_start_block.find("input").attr("param","work_start");
 
         config_container.append(work_start_block);
 
@@ -119,6 +130,7 @@ class Parapet {
             }
           }
         );
+        work_end_block.find("input").attr("param","work_end");
 
         config_container.append(work_end_block);
         
@@ -133,7 +145,7 @@ class Parapet {
     static serializeParapetContent(){
         var serialized_object = {number_of_patients: this.number_of_patients,
                                 work_start: this.work_start,
-                                wort_end : this.work_end};
+                                work_end : this.work_end};
         var serialized_parients = []
         for (let index = 0; index < this.patients.length; index++) {
             const patient = this.patients[index];
@@ -147,21 +159,53 @@ class Parapet {
         return JSON.stringify(serialized_object);
     }
 
-    static initParapetFromJSON(){
-        
+    static initParapetFormSerializedContent(serialized_content){
+        Parapet.patients = [];
+        Parapet.number_of_patients = 0;
+        $(Parapet.patients_container).empty();
+
+        if(isObject(serialized_content)){
+            Parapet.set_params(serialized_content);
+            var patients_params = serialized_content.patients;
+            var number_of_patients = serialized_content.number_of_patients;
+            
+            if(isArray(patients_params) && number_of_patients){
+                for (let index = 0; index < patients_params.length; index++) {
+                    const patient_params = patients_params[index];
+                    var patient = PETPatient.from_params(patient_params);
+                    patient.pushToPatients();
+                    if(index < number_of_patients){
+                        patient.set_visibility(true)
+                    }
+                    else{
+                        patient.set_visibility(false);
+                    }
+                    
+                }
+            }
+        }
+        Parapet.createUpdatePatientsGUI();
+    }
+
+    static reset(){
+        Parapet.patients = [];
+        Parapet.number_of_patients = 0;
+        $(Parapet.patients_container).empty();
+        Parapet.set_params({number_of_patients:1,work_start:moment("08:00","HH:mm").format("HH:mm"),work_end:moment("16:00","HH:mm").format("HH:mm")});
+        Parapet.updatePatientCount(Parapet.number_of_patients);
     }
     
     static toLocalSotrage(){
-
-
+        localStorage.setItem("parapet_content",Parapet.serializeParapetContent());
     }
 
     static fromLocalStorage(){
-
+        var stored_content = JSON.parse(localStorage.getItem("parapet_content") || "null");
+        if(stored_content!=null){
+            Parapet.initParapetFormSerializedContent(stored_content);
+        }
 
     }
-
-    
 
     static updateWorkHours(){
         $.each(Parapet.patients,function (patient_index, patient) { 
@@ -200,7 +244,7 @@ class Parapet {
 }
 
 class PETScan {
-    constructor(timing = 0, number_of_fovs =1 , fov_duration = 10,
+    constructor(timing = null, number_of_fovs =1 , fov_duration = 10,
         start_delay = 2, end_delay = 2){
             this.timing = timing;
             this.number_of_fovs = number_of_fovs;
@@ -210,17 +254,18 @@ class PETScan {
 
             this.visible = false;
             this.scan_index = null;
-            this.patient_index = null;
-
+            
             this.param_keys = Object.keys(this);
 
             this.container = null;
 
-            this.scan_start = null;
-            this.scan_end = null;
-            this.pet_start = null;
+            this.patient = null;
     }
     
+    static from_params({timing,number_of_fovs,fov_duration,start_delay,end_delay}){
+        return new PETScan(timing=timing,number_of_fovs=number_of_fovs,fov_duration=fov_duration,start_delay=start_delay,end_delay=end_delay);
+    }
+
     copy_params(scan_preset){
         if(scan_preset instanceof PETScan){
             $.each(scan_preset.param_keys,
@@ -230,6 +275,12 @@ class PETScan {
         }
     }
     
+    bound_patient(patient){
+        if(patient instanceof PETPatient){
+            this.patient = patient;
+        }
+    }
+
     serialize_scan(){
         var serialized_object = {}
         $.each(this.param_keys,
@@ -241,24 +292,36 @@ class PETScan {
 
     }
 
-    calculate_scale_params(start, sanitize = true){
-        let start_time = moment(start,"HH:mm");
-        let scale_start_time = moment(Parapet.work_start,"HH:mm");
+    get scan_start(){
+        return this.pet_start.subtract(this.start_delay,"minutes");
+    }
 
+    get scan_end(){
+        return this.pet_start.add(this.number_of_fovs * this.fov_duration + this.end_delay,"minutes");
+    }
+
+    get pet_start(){
+        return this.inj_time.add(this.timing,"minutes");
+    }
+
+    get pet_end(){
+        return this.pet_start.add(this.number_of_fovs * this.fov_duration,"minutes");
+    }
+
+    get inj_time(){
+        if(this.patient instanceof PETPatient){
+            return moment(this.patient.inj_time,"HH:mm");
+        }
+        
+    }
+
+    calculate_scale_params(sanitize = true){
         var scale_params = [];
 
-        start_time = moment(start_time).add(this.timing,"minutes");
-
-        var scan_start = moment(start_time).subtract(this.start_delay,"minutes");
-        var scan_end = moment(start_time).add(this.number_of_fovs * this.fov_duration + this.end_delay,"minutes");
-        
-        this.scan_start = moment(scan_start,"HH:mm").format("HH:mm");
-        this.scan_end = moment(scan_end,"HH:mm").format("HH:mm");
-        this.pet_start = moment(start_time,"HH:mm").format("HH:mm");
-        
-
-        var start_point = scan_start.diff(scale_start_time,"minutes");
-        var end_point = scan_end.diff(scale_start_time,"minutes");
+        let scale_start_time = moment(Parapet.work_start,"HH:mm");        
+              
+        var start_point = this.scan_start.diff(scale_start_time,"minutes");
+        var end_point = this.scan_end.diff(scale_start_time,"minutes");
 
         if(sanitize & start_point<0){
             end_point +=-start_point;
@@ -367,22 +430,21 @@ class PETPatient {
     static presets = null;
 
     static create_presets(){
-        var fdg = new PETPatient(1,null,90);
-        fdg.add_scan(new PETScan(null,3,5,5,5));
-        var fdg_wb = new PETPatient(1,null,90);
-        fdg_wb.add_scan(new PETScan(null,7,5,5,5));
+        var fdg = new PETPatient(1);
+        fdg.add_scan(new PETScan(90,3,5,5,5));
+        var fdg_wb = new PETPatient(1);
+        fdg_wb.add_scan(new PETScan(90,7,5,5,5));
 
-        var dopa = new PETPatient(1,null,90);
-        dopa.add_scan(new PETScan(null,3,5,5,5));
-        var dopa_wb = new PETPatient(1,null,90);
-        dopa_wb.add_scan(new PETScan(null,7,5,5,5));
+        var dopa = new PETPatient(1);
+        dopa.add_scan(new PETScan(60,3,5,5,5));
+        var dopa_wb = new PETPatient(1);
+        dopa_wb.add_scan(new PETScan(60,7,5,5,5));
 
-        var choline = new PETPatient(2,null,10);        
-        choline.add_scan(new PETScan(null,3,5,5,5));
+        var choline = new PETPatient(2);        
+        choline.add_scan(new PETScan(10,3,5,5,5));
         choline.add_scan(new PETScan(60,3,5,5,5));
-
-        var choline_prostate = new PETPatient(2,null,2);
-        choline_prostate.add_scan(new PETScan(null,3,5,5,5));
+        var choline_prostate = new PETPatient(2);
+        choline_prostate.add_scan(new PETScan(2,3,5,5,5));
         choline_prostate.add_scan(new PETScan(60,3,5,5,5));
 
         PETPatient.presets = {
@@ -398,15 +460,30 @@ class PETPatient {
     }
 
 
-    constructor (number_of_scans = 1, inj_time = null){
+    constructor (number_of_scans = 1, inj_time = null,patient_name = "",  ){
         this.number_of_scans = number_of_scans;
 
-        if(inj_time === null) inj_time = Parapet.default_time;
+        if(inj_time === null) inj_time = Parapet.work_start;
         this.inj_time = moment(inj_time,"HH:mm").format("HH:mm");
-       
+        this.patient_name = patient_name;
         this.scans = [];    
     }
 
+    static from_params({number_of_scans,inj_time,patient_name,scans}){
+        var patient =  new PETPatient(number_of_scans=number_of_scans,inj_time=inj_time,patient_name = patient_name,);
+        if(isArray(scans)){
+            for (let index = 0; index < scans.length; index++) {
+                const scan_params = scans[index];
+                var scan = PETScan.from_params(scan_params);
+                patient.add_scan(scan);
+                if(index<number_of_scans){
+                    scan.set_visibility(true);
+                }
+                
+            }
+        }
+        return patient
+    }
 
     get first_scan_timing(){
         if(this.scans.length>0){
@@ -438,8 +515,9 @@ class PETPatient {
 
     get last_scan_end(){
         if(this.scans.length>0){
-            const scan = this.scans[this.number_of_scans-1];
+            const scan = this.scans[this.scans.length-1];
             if(scan instanceof PETScan){
+                if(scan.scan_end==null) scan.calculate_scale_params();
                 return moment(scan.scan_end,"HH:mm").format("HH:mm");
             }
         }
@@ -451,24 +529,25 @@ class PETPatient {
         var best_timing = moment(this.last_scan_end,"HH:mm").diff(moment(this.inj_time,"HH:mm"),"minutes");
 
         if(scan instanceof PETScan){
+            best_timing +=scan.start_delay;
             if(scan.timing==null){
                 scan.timing =best_timing;
             }
             scan.scan_index =this.scans.length;
+            scan.bound_patient(this);
             this.scans.push(scan);
              
         }
         else{
             var new_scan = new PETScan(best_timing);
             new_scan.scan_index =this.scans.length;
+            new_scan.bound_patient(this);
             this.scans.push(new_scan);
         }
     }
 
 
     pushToPatients(){
-        this.patient_name = "";
-
         this.container = null;
         this.index =  Parapet.patients.length;
         this.slider_name = `patient_${this.index}_slider`;
@@ -520,7 +599,7 @@ class PETPatient {
 
             if(this.details_div){
                 let nuber_of_scans_div = $(this.details_div).find(`[name="number_of_scans"]`);
-                nuber_of_scans_div.val(this.number_of_scans);
+                nuber_of_scans_div.val(this.number_of_scans).trigger("change");
             }
             
         }
@@ -562,8 +641,6 @@ class PETPatient {
         if(this.params_div){
             let inj_time_div = this.params_div.find(`[name="inj_time"]`);
             inj_time_div.val(moment(this.inj_time,"HH:mm").format("HH:mm"));
-
-
         }
     }
 
@@ -727,7 +804,7 @@ class PETPatient {
             5,
             null,
             null,
-            moment(Parapet.work_start,"HH:mm").format("HH:mm"),
+            moment(this.inj_time,"HH:mm").format("HH:mm"),
             function (val) {
                 if(val==""){
                     val = moment(this.inj_time, "HH:mm").format("HH:mm");
@@ -781,7 +858,7 @@ class PETPatient {
                         
             let scan = this.scans[index]
             if(scan instanceof PETScan){
-                var scan_params = scan.calculate_scale_params(this.inj_time, sanitize = sanitize);
+                var scan_params = scan.calculate_scale_params(sanitize = sanitize);
 
 
                 start.push.apply(start,scan_params);
