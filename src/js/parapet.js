@@ -1,4 +1,6 @@
 class Parapet {
+
+    static initialized = false;
     static number_of_patients = 1;
     static work_start = moment("08:00","HH:mm").format("HH:mm");
     static work_end = moment("16:00","HH:mm").format("HH:mm");
@@ -7,7 +9,8 @@ class Parapet {
     static main_container = null;
     
     static parapet_config_container = null;
-
+    static parapet_schedule_container = null;
+    static schedule_plot = null;
 
     static patients_container = null;
     static patients = [];
@@ -15,6 +18,9 @@ class Parapet {
 
     static indicator_container = null;
 
+    static autosave = false;
+
+    
 
     static set_params({number_of_patients, work_start, work_end}){
         this.number_of_patients = number_of_patients;
@@ -47,7 +53,7 @@ class Parapet {
         Parapet.number_of_patients = new_count;
 
         Parapet.createUpdatePatientsGUI();
-
+        Parapet.update_schedule_plot();
     }
 
     static updateParapetConfigGUI(){
@@ -57,14 +63,20 @@ class Parapet {
         });
     }
 
-    static createParapetConfigGUI(container){
+
+    static initialize(container){
         container.empty();
 
         var config_container = $("<div/>").attr("id","parapet_config").addClass("row");
         this.parapet_config_container = config_container;
+        container.append(config_container);
 
+        var schedule_container = $("<div/>").attr("id","parapet_schedule").addClass("row d-none");
+        this.parapet_schedule_container = schedule_container;
+        container.append(schedule_container);
         
-        
+
+
         var number_of_patients_block = $("<div/>").addClass("col-md-4 d-flex ");
         
         dynamicRangeInput(
@@ -74,7 +86,7 @@ class Parapet {
           Parapet.number_of_patients,
           { min: 1, max: 10, step: 1 },
           function (val) {
-            Parapet.updatePatientCount(parseInt(val));
+            if(Parapet.initialized) Parapet.updatePatientCount(parseInt(val));
           },
           true
         );
@@ -94,6 +106,7 @@ class Parapet {
           "18:00",
           moment(Parapet.work_start, "HH:mm").format("HH:mm"),
           function (val) {
+            if(Parapet.initialized){
                 if(val=="") val = Parapet.work_start;
                 if(moment(Parapet.work_end,"HH:mm").diff(moment(val,"HH:mm"),"minutes")<=0){
                     alert("Work start can not be greater than work end");
@@ -103,6 +116,8 @@ class Parapet {
                     Parapet.work_start = moment(val, "HH:mm").format("HH:mm");
                     Parapet.updateWorkHours();
                 }
+            }
+
           }
         );
         work_start_block.find("input").attr("param","work_start");
@@ -119,6 +134,7 @@ class Parapet {
           "18:00",
           moment(Parapet.work_end, "HH:mm").format("HH:mm"),
           function (val) {
+            if(Parapet.initialized){
             if(val=="") val = Parapet.work_end;
             if(moment(val,"HH:mm").diff(moment(Parapet.work_start,"HH:mm"),"minutes")<=0){
                 alert("Work end can not be smaller than work start");
@@ -127,7 +143,7 @@ class Parapet {
             else{
                 Parapet.work_end = moment(val, "HH:mm").format("HH:mm");
                 Parapet.updateWorkHours();
-            }
+            }}
           }
         );
         work_end_block.find("input").attr("param","work_end");
@@ -138,8 +154,15 @@ class Parapet {
             PETPatient.create_presets();
         }
 
-        container.append(config_container);
+        Parapet.init_schedule_plot();
 
+        Parapet.fromLocalStorage();
+        Parapet.autosave = true;
+
+        Parapet.initialized= true;
+        
+        number_of_patients_block.find('[name]').trigger('change');
+        
     }
 
     static serializeParapetContent(){
@@ -185,6 +208,7 @@ class Parapet {
             }
         }
         Parapet.createUpdatePatientsGUI();
+        Parapet.update_schedule_plot();
     }
 
     static reset(){
@@ -193,6 +217,8 @@ class Parapet {
         $(Parapet.patients_container).empty();
         Parapet.set_params({number_of_patients:1,work_start:moment("08:00","HH:mm").format("HH:mm"),work_end:moment("16:00","HH:mm").format("HH:mm")});
         Parapet.updatePatientCount(Parapet.number_of_patients);
+        Parapet.init_schedule_plot();
+        Parapet.update_schedule_plot();
     }
     
     static toLocalStorage(){
@@ -210,10 +236,13 @@ class Parapet {
     static updateWorkHours(){
         $.each(Parapet.patients,function (patient_index, patient) { 
             if(patient instanceof PETPatient){
+                patient.sanitize();
                 if(patient.container)  patient.create_GUI(patient.container);
                 // console.log("updated");
             }
         })
+        Parapet.init_schedule_plot();
+        Parapet.update_schedule_plot();
     }
 
     static createUpdatePatientsGUI(container = null){
@@ -241,9 +270,69 @@ class Parapet {
         }
     }
 
-    static schedule_plot(alpha = 0.5){
+    static init_schedule_plot(container = null){
+        if(! container){
+            container = Parapet.parapet_schedule_container;
+        }
+        $(container).empty();
+        Parapet.parapet_schedule_container = container;
+        $(container).removeClass("d-none");
+        $(container).css("height","100px");
+
+
+        const config = {
+            type: "line", // Use line chart
+            data: {
+              datasets: [],
+            },
+            options: {
+              scales: {
+                x: {
+                  type: "time",
+                  position: "bottom",
+                  time: {
+                    minUnit: "hour",
+                    displayFormats: {
+                      hour: "HH:mm",
+                    },
+                  },
+                  suggestedMin:moment(Parapet.work_start,"HH:mm"),
+                  suggestedMax:moment(Parapet.work_end,"HH:mm"),
+                },
+                y: {
+                  display: false, // Hide the y-axis
+                },
+              },
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                  legend: {
+                      display: false,
+                  }
+              },
+              
+              layout: {
+                  padding: {
+                      left: 20, right:20, top:5, bottom:30
+                  }
+              }
+              
+            },
+          };
+
+        var chart_div = $("<canvas/>").attr("id","schedule_chart");
+        $(container).append($("<div/>").append(chart_div).css("height","100pt").addClass("m-2"));
+        
+        var chart_element = document.getElementById("schedule_chart").getContext('2d');
+        Parapet.schedule_plot = new Chart(chart_element, config);
+
+    }
+    static update_schedule_plot(alpha = 0.5){
         // reformat data
         var dataset = [];
+
+        var baseline = 0;
+        var jitter_step = 0.1;
         
 
         for (let patient_index = 0; patient_index < Parapet.number_of_patients; patient_index++) {
@@ -253,12 +342,12 @@ class Parapet {
                 for (let scan_index = 0; scan_index < patient.number_of_scans; scan_index++) {
                     const scan = patient.scans[scan_index];
                     if(scan instanceof PETScan){
-                        var data = [{ x: scan.scan_start, y:0}, { x: scan.scan_end, y:0}];
+                        var data = [{ x: scan.scan_start, y:baseline}, { x: scan.scan_end, y:baseline}];
 
                         var _dataset = {
                             label:`Patient Nr.${patient_index+1}, Scan ${scan_index+1}`,
-                            backgroundColor: patient.color,
-                            borderColor: patient.color,
+                            backgroundColor: patient.color.alpha(alpha),
+                            borderColor: patient.color.alpha(alpha),
                             borderWidth: 5,
                             pointRadius:5,
                             data: data,
@@ -273,16 +362,11 @@ class Parapet {
 
         // sort dataset
         dataset.sort((a, b) => a.start - b.start);
-        console.log(dataset);
+        // console.log(dataset);
 
         // jitter overlapping data
-        var baseline = 0;
-        var jitter_step = 0.1;
-        var sign = 1;
-        var jitter_level = 0;
 
-        
-
+    
         function assignOverlapLevels(intervals) {
             // Sort intervals by start time
             intervals.sort((a, b) => a.start - b.start);
@@ -304,7 +388,49 @@ class Parapet {
             return levels;
         }
 
-        console.log(assignOverlapLevels(dataset))
+        var levels = assignOverlapLevels(dataset);
+        // console.log(levels);
+
+        var sign = 1;
+        var max_level = 0;
+
+        for (let index = 0; index < levels.length; index++) {
+            const level = levels[index];
+            if(level>0){
+                max_level+=1;
+
+                var displacement = Math.ceil(max_level/2)*jitter_step;
+                
+    
+                dataset[index].data[0].y+=displacement*sign;
+                dataset[index].data[1].y+=displacement*sign;
+
+                sign = sign*-1;
+            }
+            else{
+                max_level = 0;
+                sign = 1;
+            }
+            // console.log(dataset[index].data[0].y);
+        }
+
+
+        // draw plot
+
+        if(!Parapet.schedule_plot){
+            Parapet.init_schedule_plot();
+        }
+
+        // remove old data
+        Parapet.schedule_plot.data.labels.pop();
+        Parapet.schedule_plot.data.datasets.forEach((dataset) => {
+            dataset.data.pop();
+        });
+        
+        // add new data
+        Parapet.schedule_plot.data.datasets = dataset;
+
+        Parapet.schedule_plot.update();
 
     }
 
@@ -312,7 +438,7 @@ class Parapet {
 
 class PETScan {
     constructor(timing = null, number_of_fovs =1 , fov_duration = 10,
-        start_delay = 2, end_delay = 2){
+        start_delay = 0, end_delay = 0){
             this.timing = timing;
             this.number_of_fovs = number_of_fovs;
             this.fov_duration = fov_duration;
@@ -501,6 +627,7 @@ class PETScan {
 class PETPatient {
     static presets = null;
 
+
     static create_presets(){
         var fdg = new PETPatient(1);
         fdg.add_scan(new PETScan(90,3,5,5,5));
@@ -533,12 +660,40 @@ class PETPatient {
 
 
     constructor (number_of_scans = 1, inj_time = null,patient_name = "",  ){
-        this.number_of_scans = number_of_scans;
+        this._number_of_scans = number_of_scans;
 
         if(inj_time === null) inj_time = Parapet.work_start;
-        this.inj_time = moment(inj_time,"HH:mm").format("HH:mm");
+        this._inj_time = moment(inj_time,"HH:mm").format("HH:mm");
         this.patient_name = patient_name;
-        this.scans = [];    
+        this.scans = [];
+
+    }
+
+    get number_of_scans(){
+        return this._number_of_scans;
+    }
+
+    set number_of_scans(value){
+        if(value>=0){
+            this._number_of_scans = value
+            Parapet.update_schedule_plot();
+            if(Parapet.autosave) Parapet.toLocalStorage();
+        }
+
+    }
+
+    get inj_time(){
+        return moment(this._inj_time,"HH:mm").format("HH:mm");
+    }
+
+    set inj_time(value){
+        if(value){
+            this._inj_time = moment(value,"HH:mm");
+            if(this.container){
+                Parapet.update_schedule_plot();
+                if(Parapet.autosave) Parapet.toLocalStorage();
+            }
+        }
     }
 
     static from_params({number_of_scans,inj_time,patient_name,scans}){
@@ -596,6 +751,10 @@ class PETPatient {
         return moment(this.inj_time,"HH:mm").format("HH:mm");
     }
 
+
+    sanitize(){
+        this.inj_time = moment(Parapet.work_start,"HH:mm");
+    }
 
     add_scan(scan=null){
         var best_timing = moment(this.last_scan_end,"HH:mm").diff(moment(this.inj_time,"HH:mm"),"minutes");
@@ -668,7 +827,7 @@ class PETPatient {
                 }.bind(this));
             }
             this.create_slider_gui(this.slider_div);
-
+            Parapet.update_schedule_plot();
             if(this.details_div){
                 let nuber_of_scans_div = $(this.details_div).find(`[name="number_of_scans"]`);
                 nuber_of_scans_div.val(this.number_of_scans).trigger("change");
