@@ -28,6 +28,6 @@ Printing:
 
 Validation:
 
-0. finalize checkbox? - only validate if finalized. 
-1. check for overlaping timings
-2. create plot?
+0. finalize checkbox? - only validate if finalized.                 not necessary 
+1. check for overlaping timings                                     nice alternative
+2. create plot?                                                     OK - nicely done
