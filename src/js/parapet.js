@@ -18,9 +18,15 @@ class Parapet {
 
     static indicator_container = null;
 
-    static autosave = false;
+    static _autosave = false;
 
-    
+    static get autosave(){
+        return Parapet._autosave;
+    }
+    static set autosave(value){
+        Parapet._autosave = value;
+        $(document).find("#autosave_switch").prop("checked",value);
+    }
 
     static set_params({number_of_patients, work_start, work_end}){
         this.number_of_patients = number_of_patients;
@@ -54,6 +60,8 @@ class Parapet {
 
         Parapet.createUpdatePatientsGUI();
         Parapet.update_schedule_plot();
+
+        if(Parapet.autosave) Parapet.toLocalStorage();
     }
 
     static updateParapetConfigGUI(){
@@ -67,6 +75,7 @@ class Parapet {
     static initialize(container){
         container.empty();
 
+    
         var config_container = $("<div/>").attr("id","parapet_config").addClass("row");
         this.parapet_config_container = config_container;
         container.append(config_container);
@@ -75,6 +84,19 @@ class Parapet {
         this.parapet_schedule_container = schedule_container;
         container.append(schedule_container);
         
+        var menu_block = $("<div/>").attr("id","menu_block").addClass("col-md-1");
+        var menu_div = $("<div/>").addClass("dropdown");
+        menu_block.append(menu_div);
+
+        var menu_btn = $("<div/>").addClass("btn btn-outline-dark w-100 dropdown-toggle").attr("type","button").html("Menu").attr("id","parapet_menu_btn");
+        menu_div.append(menu_btn);
+        
+        var menu_list = $("<ul/>").addClass("dropdown-menu");
+        menu_div.append(menu_list);
+
+
+
+        config_container.append(menu_block)
 
 
         var number_of_patients_block = $("<div/>").addClass("col-md-4 d-flex ");
@@ -95,7 +117,7 @@ class Parapet {
         config_container.append(number_of_patients_block);
 
 
-        var work_start_block = $("<div/>").addClass("col-md-4 d-flex");
+        var work_start_block = $("<div/>").addClass("col-md-3 d-flex");
         
         simple_dynamic_input_time(
           work_start_block,
@@ -124,7 +146,7 @@ class Parapet {
 
         config_container.append(work_start_block);
 
-        var work_end_block = $("<div/>").addClass("col-md-4 d-flex");
+        var work_end_block = $("<div/>").addClass("col-md-3 d-flex");
         simple_dynamic_input_time(
           work_end_block,
           "work_end",
@@ -149,6 +171,19 @@ class Parapet {
         work_end_block.find("input").attr("param","work_end");
 
         config_container.append(work_end_block);
+
+        var autosave_block = $("<div/>").attr("id","autosave_block").addClass("col-md-1 pt-2");
+        var autosave_div = $("<div/>").addClass("form-check form-switch");
+        var autosave_switch = $("<input/>").addClass("form-check-input").attr("type","checkbox").attr("id","autosave_switch");
+        autosave_div.append(autosave_switch);
+        autosave_div.append($("<label/>").addClass("form-check-label").attr("for","autosave_switch").html("Auto-save"));
+        autosave_switch.on("change",function(){
+            Parapet.autosave = autosave_switch.prop("checked");
+        })
+        autosave_block.append(autosave_div);
+        config_container.append(autosave_block)
+
+
         
         if(PETPatient.presets==null){
             PETPatient.create_presets();
@@ -197,12 +232,8 @@ class Parapet {
                     const patient_params = patients_params[index];
                     var patient = PETPatient.from_params(patient_params);
                     patient.pushToPatients();
-                    if(index < number_of_patients){
-                        patient.set_visibility(true)
-                    }
-                    else{
-                        patient.set_visibility(false);
-                    }
+                    patient.set_visibility(patient_params.visible)
+
                     
                 }
             }
@@ -248,7 +279,7 @@ class Parapet {
     static createUpdatePatientsGUI(container = null){
         if(container!== null) this.patients_container = $(container);
 
-        this.patients_container.addClass("d-flex flex-column");
+        this.patients_container.addClass("d-flex flex-column").css({"overflow":"auto","max-height":632});
 
 
         for (let index = 0; index < this.patients.length; index++) {
@@ -286,6 +317,7 @@ class Parapet {
               datasets: [],
             },
             options: {
+              animations:{colors:false},
               scales: {
                 x: {
                   type: "time",
@@ -327,7 +359,7 @@ class Parapet {
         Parapet.schedule_plot = new Chart(chart_element, config);
 
     }
-    static update_schedule_plot(alpha = 0.5){
+    static update_schedule_plot(alpha = 0.6){
         // reformat data
         var dataset = [];
 
@@ -347,8 +379,15 @@ class Parapet {
                         var _dataset = {
                             label:`Patient Nr.${patient_index+1}, Scan ${scan_index+1}`,
                             backgroundColor: patient.color.alpha(alpha),
-                            borderColor: patient.color.alpha(alpha),
-                            borderWidth: 5,
+                            borderColor:patient.color.alpha(alpha/2),
+                            pointBackgroundColor:patient.color.alpha(alpha),
+                            
+                            pointBorderColor: patient.color.alpha(1),
+                            pointHoverBackgroundColor:  patient.color.alpha(1), 
+                            pointHoverBorderColor: patient.color.alpha(1),
+                            pointHoverRadius: 5,
+                            pointBorderWidth:1,
+                            borderWidth: 4,
                             pointRadius:5,
                             data: data,
                             start: scan.scan_start,
@@ -455,8 +494,10 @@ class PETScan {
             this.patient = null;
     }
     
-    static from_params({timing,number_of_fovs,fov_duration,start_delay,end_delay}){
-        return new PETScan(timing=timing,number_of_fovs=number_of_fovs,fov_duration=fov_duration,start_delay=start_delay,end_delay=end_delay);
+    static from_params({timing,number_of_fovs,fov_duration,start_delay,end_delay, visible}){
+        var scan =  new PETScan(timing=timing,number_of_fovs=number_of_fovs,fov_duration=fov_duration,start_delay=start_delay,end_delay=end_delay);
+        scan.set_visibility(visible);
+        return scan;
     }
 
     copy_params(scan_preset){
@@ -659,13 +700,14 @@ class PETPatient {
     }
 
 
-    constructor (number_of_scans = 1, inj_time = null,patient_name = "",  ){
+    constructor (number_of_scans = 1, inj_time = null,patient_name = "", visible = false ){
         this._number_of_scans = number_of_scans;
 
         if(inj_time === null) inj_time = Parapet.work_start;
         this._inj_time = moment(inj_time,"HH:mm").format("HH:mm");
         this.patient_name = patient_name;
         this.scans = [];
+        this.visible = visible;
 
     }
 
@@ -696,8 +738,8 @@ class PETPatient {
         }
     }
 
-    static from_params({number_of_scans,inj_time,patient_name,scans}){
-        var patient =  new PETPatient(number_of_scans=number_of_scans,inj_time=inj_time,patient_name = patient_name,);
+    static from_params({number_of_scans,inj_time,patient_name,scans, visible}){
+        var patient =  new PETPatient(number_of_scans=number_of_scans,inj_time=inj_time,patient_name = patient_name, visible = visible);
         if(isArray(scans)){
             for (let index = 0; index < scans.length; index++) {
                 const scan_params = scans[index];
@@ -839,7 +881,7 @@ class PETPatient {
     serializePatient(){
         var serialized_object = {patient_name : this.patient_name,
                                  number_of_scans : this.number_of_scans,
-                                 inj_time: this.inj_time
+                                 inj_time: this.inj_time, visible: this.visible
         }
         var serialized_scans = []
         for (let index = 0; index < this.scans.length; index++) {
@@ -1103,6 +1145,8 @@ class PETPatient {
         var params = this.paramsToSliderParams();
         if(this.slider){
             this.slider.noUiSlider.set(params.start);
+            Parapet.update_schedule_plot();
+            if(Parapet.autosave) Parapet.toLocalStorage();
         }
     }
 
