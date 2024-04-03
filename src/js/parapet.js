@@ -2,12 +2,13 @@ class Parapet {
 
     static initialized = false;
     static number_of_patients = 1;
-    static work_start = moment("08:00","HH:mm").format("HH:mm");
-    static work_end = moment("16:00","HH:mm").format("HH:mm");
+    static work_start = moment("07:00","HH:mm").format("HH:mm");
+    static work_end = moment("17:00","HH:mm").format("HH:mm");
     static default_time = this.work_start;
 
     static main_container = null;
     
+    static parapet_menu_container = null;
     static parapet_config_container = null;
     static parapet_schedule_container = null;
     static schedule_plot = null;
@@ -20,6 +21,8 @@ class Parapet {
 
     static _autosave = false;
 
+    static encrypt = true;
+
     static get autosave(){
         return Parapet._autosave;
     }
@@ -27,6 +30,8 @@ class Parapet {
         Parapet._autosave = value;
         $(document).find("#autosave_switch").prop("checked",value);
     }
+
+
 
     static set_params({number_of_patients, work_start, work_end}){
         this.number_of_patients = number_of_patients;
@@ -72,11 +77,123 @@ class Parapet {
     }
 
 
+    static #create_menu(){
+        if(!Parapet.parapet_menu_container) return;
+        var container = Parapet.parapet_menu_container;
+
+        $(container).empty();
+
+        var modal_container = $("<div/>");
+        $(container).append(modal_container);
+
+        var menu_content = $("<ul/>").addClass("nav nav-pills d-flex flex-column h-100 mb-auto text-center py-2 px-1 justify-content-start");
+
+        var reset_block = $("<li/>").addClass("nav-item");
+        var save_block = $("<li/>").addClass("nav-item");
+        var export_block = $("<li/>").addClass("nav-item");
+        var import_block = $("<li/>").addClass("nav-item");
+        var print_block = $("<li/>").addClass("nav-item");
+
+        menu_content.append(reset_block);
+        menu_content.append(save_block);
+        menu_content.append(export_block);
+        menu_content.append(import_block);
+        menu_content.append(print_block);
+
+
+        var reset_btn = $("<a/>").addClass("nav-link link-dark py-3 my-1");
+        reset_btn.attr("data-bs-toggle","tooltip").attr("data-bs-placement","right");
+        reset_btn.attr("title","Reset");
+        reset_btn.append($("<i/>").addClass("fa fa-trash-arrow-up fa-solid"));
+        reset_block.append(reset_btn);
+
+        var save_btn = $("<a/>").addClass("nav-link link-dark py-3 my-1");
+        save_btn.attr("data-bs-toggle","tooltip").attr("data-bs-placement","right");
+        save_btn.attr("title","Save");
+        save_btn.append($("<i/>").addClass("fa fa-floppy-disk fa-solid"));
+        save_block.append(save_btn);
+
+        var export_btn = $("<a/>").addClass("nav-link link-dark py-3 my-1");
+        export_btn.attr("data-bs-toggle","tooltip").attr("data-bs-placement","right");
+        export_btn.attr("title","Export");
+        export_btn.append($("<i/>").addClass("fa fa-file-export fa-solid"));
+        export_block.append(export_btn);
+
+        
+        var import_btn = $("<a/>").addClass("nav-link link-dark py-3 my-1");
+        import_btn.attr("data-bs-toggle","tooltip").attr("data-bs-placement","right");
+        import_btn.attr("title","Import");
+        import_btn.append($("<i/>").addClass("fa fa-file-import fa-solid"));
+        import_block.append(import_btn);
+
+        var print_btn = $("<a/>").addClass("nav-link link-dark py-3 my-1");
+        print_btn.attr("data-bs-toggle","tooltip").attr("data-bs-placement","right");
+        print_btn.attr("title","Print");
+        print_btn.append($("<i/>").addClass("fa fa-print fa-solid"));
+        print_block.append(print_btn);
+
+        $(container).append(menu_content);
+
+        reset_btn.on("click",function(){
+            create_modal_confirm(modal_container,"reset_modal","Reset confrimation","Do you really want to reset the content?",Parapet.reset);
+            $(modal_container).find("#reset_modal").modal('show');
+        })
+
+
+        save_btn.on("click",function(){
+            Parapet.toLocalStorage();
+        })
+
+        export_btn.on("click",function(){
+            var export_content = $("<div/>").addClass("p-2 m-2");
+            var textarea = $("<textarea/>").addClass("form-control").attr("readonly",true).attr("rows",10);
+            $(textarea).val(Parapet.encrypt_json(Parapet.serializeParapetContent()));
+            export_content.append(textarea);
+            
+
+            create_modal_window(modal_container,"export_modal","Export",export_content,"lg");
+            $(modal_container).find("#export_modal").modal('show');
+        })
+
+        import_btn.on("click",function(){
+            var import_content = $("<div/>").addClass("p-2 m-2");
+            var textarea = $("<textarea/>").addClass("form-control").attr("rows",10);
+            import_content.append(textarea);
+            import_content.append($("<p/>").addClass("m-2").html("Do you really want to import the inserted content?"));
+
+            create_modal_confirm(modal_container,"import_modal","Import",import_content,function(){
+                try {
+                    var text = $(textarea).val();
+                    var new_content = JSON.parse(Parapet.decrypt_json(text) || "null");
+                    if(new_content!=null){
+                        Parapet.initParapetFormSerializedContent(new_content);
+                    }
+                } catch (error) {
+                    alert(error);
+                }
+            });
+            $(modal_container).find("#import_modal").modal('show');
+        })
+
+        print_btn.on("click",function(){
+            var print_content = $("<div/>").addClass("p-2 m-2");
+            var textarea = $("<textarea/>").addClass("form-control").attr("readonly",true).attr("rows",10);
+            $(textarea).val(Parapet.encrypt_json(Parapet.serializeParapetContent()));
+            print_content.append(textarea);
+            
+
+            create_modal_window(modal_container,"print_modal","Print",print_content,"fullscreen");
+            $(modal_container).find("#print_modal").modal('show');
+        })
+
+    }
+
     static initialize(container){
         container.empty();
 
+        Parapet.#create_menu();
     
-        var config_container = $("<div/>").attr("id","parapet_config").addClass("row");
+        var config_container = $("<div/>").attr("id","parapet_config").addClass("row parapet-card");
         this.parapet_config_container = config_container;
         container.append(config_container);
 
@@ -84,21 +201,7 @@ class Parapet {
         this.parapet_schedule_container = schedule_container;
         container.append(schedule_container);
         
-        var menu_block = $("<div/>").attr("id","menu_block").addClass("col-md-1");
-        var menu_div = $("<div/>").addClass("dropdown");
-        menu_block.append(menu_div);
-
-        var menu_btn = $("<div/>").addClass("btn btn-outline-dark w-100 dropdown-toggle").attr("type","button").html("Menu").attr("id","parapet_menu_btn");
-        menu_div.append(menu_btn);
         
-        var menu_list = $("<ul/>").addClass("dropdown-menu");
-        menu_div.append(menu_list);
-
-
-
-        config_container.append(menu_block)
-
-
         var number_of_patients_block = $("<div/>").addClass("col-md-4 d-flex ");
         
         dynamicRangeInput(
@@ -172,15 +275,21 @@ class Parapet {
 
         config_container.append(work_end_block);
 
-        var autosave_block = $("<div/>").attr("id","autosave_block").addClass("col-md-1 pt-2");
-        var autosave_div = $("<div/>").addClass("form-check form-switch");
+        var autosave_block = $("<div/>").attr("id","autosave_block").addClass("col-md-2 d-flex justify-content-end");
+        var autosave_div = $("<div/>").addClass("form-check form-switch pt-2");
         var autosave_switch = $("<input/>").addClass("form-check-input").attr("type","checkbox").attr("id","autosave_switch");
         autosave_div.append(autosave_switch);
         autosave_div.append($("<label/>").addClass("form-check-label").attr("for","autosave_switch").html("Auto-save"));
         autosave_switch.on("change",function(){
             Parapet.autosave = autosave_switch.prop("checked");
         })
+
+        var save_indicator = $("<div/>").addClass("pt-2 me-4");
+        save_indicator.append($("<span/>").attr("id","save-indicator").html("Saving content...").css("color","lightgreen").addClass("d-none"));
+        autosave_block.append(save_indicator);
         autosave_block.append(autosave_div);
+
+
         config_container.append(autosave_block)
 
 
@@ -198,6 +307,33 @@ class Parapet {
         
         number_of_patients_block.find('[name]').trigger('change');
         
+    }
+
+    static encrypt_json(json_text){
+        if(!json_text) return json_text;
+        if(Parapet.encrypt){
+            const fixedKey = '$2a$10$eFDU7VkWCGD9Y0sInpcKDO';
+            return CryptoJS.AES.encrypt(json_text, fixedKey).toString(); 
+        }
+        else{
+            return json_text
+        }
+
+
+
+    }
+
+    static decrypt_json(encrypted_json_text){
+        if(!encrypted_json_text) return encrypted_json_text;
+        if(Parapet.encrypt){
+            const fixedKey = '$2a$10$eFDU7VkWCGD9Y0sInpcKDO';
+            const bytes = CryptoJS.AES.decrypt(encrypted_json_text, fixedKey);
+            return bytes.toString(CryptoJS.enc.Utf8);
+        }
+        else{
+            return encrypted_json_text
+        }
+
     }
 
     static serializeParapetContent(){
@@ -246,18 +382,28 @@ class Parapet {
         Parapet.patients = [];
         Parapet.number_of_patients = 0;
         $(Parapet.patients_container).empty();
-        Parapet.set_params({number_of_patients:1,work_start:moment("08:00","HH:mm").format("HH:mm"),work_end:moment("16:00","HH:mm").format("HH:mm")});
+        Parapet.set_params({number_of_patients:1,work_start:moment("07:00","HH:mm").format("HH:mm"),work_end:moment("17:00","HH:mm").format("HH:mm")});
         Parapet.updatePatientCount(Parapet.number_of_patients);
         Parapet.init_schedule_plot();
         Parapet.update_schedule_plot();
     }
     
     static toLocalStorage(){
-        localStorage.setItem("parapet_content",Parapet.serializeParapetContent());
+        if(Parapet.parapet_config_container){
+            $(Parapet.parapet_config_container.find("#save-indicator").removeClass("d-none"))
+            setTimeout(function(){
+                localStorage.setItem("parapet_content",Parapet.encrypt_json(Parapet.serializeParapetContent()));
+                $(Parapet.parapet_config_container.find("#save-indicator").addClass("d-none"))
+            },100)
+            
+        }
+        else{
+            localStorage.setItem("parapet_content",Parapet.encrypt_json(Parapet.serializeParapetContent()));
+        }
     }
 
     static fromLocalStorage(){
-        var stored_content = JSON.parse(localStorage.getItem("parapet_content") || "null");
+        var stored_content = JSON.parse(Parapet.decrypt_json(localStorage.getItem("parapet_content")) || "null");
         if(stored_content!=null){
             Parapet.initParapetFormSerializedContent(stored_content);
         }
@@ -284,9 +430,7 @@ class Parapet {
 
         for (let index = 0; index < this.patients.length; index++) {
             const patient = this.patients[index];
-            var patient_container = $("<div/>").attr("id",`patient_${index+1}`).addClass("d-flex flex-column p-2 m-1 shadow-sm");
-            patient_container.css("border","#ced4da 0.5px solid");
-            patient_container.css("background","#f8f9fa");;
+            var patient_container = $("<div/>").attr("id",`patient_${index+1}`).addClass("d-flex flex-column parapet-card");
 
             if(this.patients_container.find(`#patient_${index+1}`).length == 0){
                 this.patients_container.append(patient_container);
@@ -308,7 +452,8 @@ class Parapet {
         $(container).empty();
         Parapet.parapet_schedule_container = container;
         $(container).removeClass("d-none");
-        $(container).css("height","100px");
+        $(container).addClass("parapet-card")
+        $(container).css("height","125px");
 
 
         const config = {
@@ -795,6 +940,7 @@ class PETPatient {
 
 
     sanitize(){
+        if(moment(this.inj_time,"HH:mm")<moment(Parapet.work_start,"HH:mm") || moment(this.inj_time,"HH:mm")>moment(Parapet.work_end,"HH:mm"))
         this.inj_time = moment(Parapet.work_start,"HH:mm");
     }
 
@@ -842,6 +988,8 @@ class PETPatient {
 
         this.slider_dragged = false;
         this.slider_pre_drag_starts = null;
+
+        this.initialized = false;
 
         Parapet.patients.push(this);
 
@@ -932,8 +1080,10 @@ class PETPatient {
         _select_dropdow.on("change",function(event){
             const val = event.target.value;
             if(val!=""){
-                this.initFromPreset(val);
-                this.update_params_gui();
+                if(this.initialized){
+                    this.initFromPreset(val);
+                    this.update_params_gui();
+                }
             }
         }.bind(this))
 
@@ -961,7 +1111,7 @@ class PETPatient {
     #create_scan_detail_block(scan){
         if(scan instanceof PETScan){
             if(this.scan_details_div){
-                var new_scans_container = $("<div/>").addClass("d-flex w-100 m-1 flex-column");
+                var new_scans_container = $("<div/>").addClass("d-flex w-100 p-1 flex-column");
                 $(this.scan_details_div).append(new_scans_container);
             
                 scan.create_param_gui(new_scans_container);
@@ -1024,7 +1174,7 @@ class PETPatient {
 
         var second_row = $("<div/>").addClass("row mb-2");
         second_row.append(preset_block.addClass("col-md-6"));
-        var details_btn = $("<button/>").addClass("btn btn-outline-dark w-100").html("Details");
+        var details_btn = $("<button/>").addClass("btn btn-outline-dark btn-filled w-100").html("Details");
         details_btn.attr("data-bs-toggle","collapse").attr("data-bs-target",`#${this.patient_details_name}`);
 
         second_row.append($("<div/>").addClass("col-md-6").append(details_btn));
@@ -1042,11 +1192,11 @@ class PETPatient {
         var details_content = $("<div/>").addClass("card card-body");
 
         $(details_container).on("show.bs.collapse",function(){
-            details_btn.removeClass("btn-outline-dark").addClass("btn-dark");
+            details_btn.removeClass("btn-outline-dark btn-filled").addClass("btn-dark");
         })
 
         $(details_container).on("hide.bs.collapse",function(){
-            details_btn.addClass("btn-outline-dark").removeClass("btn-dark");
+            details_btn.addClass("btn-outline-dark btn-filled").removeClass("btn-dark");
         })
 
         var details_first_row = $("<div/>").addClass("row");
@@ -1079,13 +1229,16 @@ class PETPatient {
             null,
             moment(this.inj_time,"HH:mm").format("HH:mm"),
             function (val) {
-                if(val==""){
-                    val = moment(this.inj_time, "HH:mm").format("HH:mm");
-                    $(start_time_block).find("input").val(val);
+                if(this.initialized){
+                    if(val==""){
+                        val = moment(this.inj_time, "HH:mm").format("HH:mm");
+                        $(start_time_block).find("input").val(val);
+                    }
+    
+                    this.inj_time = moment(val, "HH:mm").format("HH:mm");
+                    this.paramsToSlider();
                 }
-
-                this.inj_time = moment(val, "HH:mm").format("HH:mm");
-                this.paramsToSlider();
+                
             }.bind(this)
         );
 
@@ -1095,31 +1248,25 @@ class PETPatient {
             this.number_of_scans,
             {"min":1,"max":3,"step":1},
             function(val){
-                var new_num_of_scans = parseInt(val);
-                this.create_show_hide_scan_details(new_num_of_scans);
-                this.create_slider_gui(this.slider_div);
+                if(this.initialized){
+                    var new_num_of_scans = parseInt(val);
+                    this.create_show_hide_scan_details(new_num_of_scans);
+                    this.create_slider_gui(this.slider_div);
+                }
                 
             }.bind(this))
         
-        
-        // dynamicRangeInput(inj_delay_block,
-        //     "inj_delay",
-        //     "Inj. delay [min]",
-        //     this.inj_delay,
-        //     {"min":0,"max":90,"step":1},
-        //     function(val){
-        //         this.inj_delay = parseInt(val);
-        //     }.bind(this))   
-  
-        
+                
 
         $(params_container).find("input").on("change",function(){
-            this.paramsToSlider();
+            if(this.initialized) this.paramsToSlider();
         }.bind(this))
 
         $(details_first_row).find("input").on("change",function(){
-            this.paramsToSlider();
+            if(this.initialized) this.paramsToSlider();
+
         }.bind(this))
+
     }
 
     paramsToSliderParams(sanitize = true){
@@ -1262,6 +1409,8 @@ class PETPatient {
 
 
     create_GUI(container){
+        this.initialized = false;
+
         if(this.container){
             this.container.empty();
         }
@@ -1281,7 +1430,7 @@ class PETPatient {
         this.create_parameter_gui(this.params_div,this.details_div);
         this.create_slider_gui(this.slider_div);
         
-
+        this.initialized = true;
 
     }
 }

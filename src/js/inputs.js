@@ -30,8 +30,9 @@ function dynamicRangeInput(container, name, label, default_value, arg = null, on
     })
 
     $(current).on("change",function(){
-        $(_input).val($(this).val());
+        $(_input).val($(this).val()).trigger("change");
         $(_input).prop("data-value",$(this).val());
+
     })
 
     $(_input).on("input",function(){

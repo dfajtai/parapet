@@ -1,4 +1,3 @@
-
 .slider-styled,
 .slider-styled .noUi-handle {
     box-shadow: none;
@@ -12,7 +11,7 @@
 
 .slider-styled .noUi-connect {
     background: darkseagreen;
-} 
+}
 
 .slider-styled .noUi-handle .noUi-touch-area {
     border: 1px solid transparent;
@@ -50,6 +49,7 @@
 .slider-hide .noUi-tooltip {
     display: none;
 }
+
 .slider-hide .noUi-active .noUi-tooltip {
     display: block;
 }
@@ -61,7 +61,7 @@
 
 
 
-.slider-styled  .noUi-value-horizontal {
+.slider-styled .noUi-value-horizontal {
     -webkit-transform: translate(-50%, 25px);
     transform: translate(-50%, 25px);
     writing-mode: vertical-lr;
@@ -75,30 +75,34 @@
 .noUi-pips-horizontal {
     margin-top: -6pt;
 }
-.noUi-value-large{
+
+.noUi-value-large {
     font-size: small;
     margin-top: -6pt;
 }
-.noUi-value-sub{
+
+.noUi-value-sub {
     font-size: x-small;
 }
 
 
-.ui-timepicker-viewport{
+.ui-timepicker-viewport {
     font-size: small;
 }
 
-.ui-timepicker-container{
-    z-index: 9999 !important; /* Set a high z-index value */
+.ui-timepicker-container {
+    z-index: 9999 !important;
+    /* Set a high z-index value */
 }
-  
+
 
 
 .form-range::-moz-range-thumb {
-    width: .7rem; 
-    height: .7rem; 
+    width: .7rem;
+    height: .7rem;
 
 }
+
 .form-range::-moz-range-track {
     background: white;
     border: #adb5bd solid 1px;
@@ -107,9 +111,10 @@
 
 
 .form-range::-webkit-slider-thumb {
-    width: .7rem; 
+    width: .7rem;
     height: .7rem;
 }
+
 .form-range::-webkit-slider-track {
     background: white;
     border: #adb5bd solid 1px;
@@ -117,17 +122,65 @@
 }
 
 .form-range::-ms-thumb {
-    width: .7rem; 
-    height: .7rem; 
+    width: .7rem;
+    height: .7rem;
 }
-.form-range::-ms-track{
+
+.form-range::-ms-track {
     background: white;
     border: #adb5bd solid 1px;
     height: 0.2rem;
-} 
+}
 
 
 
+.parapet-card {
+    border: #ced4da 0.5px solid;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    background: #f8f9fa;
+    padding: .5rem !important;
+    margin: .25rem !important;
+}
+
+.btn-filled {
+    --bs-btn-bg: white !important;
+}
 
 
-  
+:root {
+    --fixed-width: 4.5rem;
+    /* Set fixed width */
+}
+
+.fixed-width {
+    width: var(--fixed-width);
+    height: calc(100vh);
+}
+
+.responsive-width {
+    width: calc(100vw - var(--fixed-width));
+    /* Calculate responsive width */
+}
+
+
+.nav-item .nav-link {
+    border: #212529 1pt solid ;
+    transition: background-color 0.3s ease; /* Smooth transition for hover effect */
+    padding: 0.5rem 1rem; /* Adjust padding as needed */
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  }
+
+ .nav-item .nav-link:hover {
+background-color: #212529; /* Change background color on hover */
+color: #fff; /* Change text color on hover */
+}
+
+/* Custom CSS for icon color change on hover */
+.nav-item .nav-link .fa {
+color:#212529;
+transition: color 0.3s ease; /* Smooth transition for icon color change */
+}
+
+.nav-item .nav-link:hover .fa {
+color: #fff; /* Change icon color on hover */
+}
