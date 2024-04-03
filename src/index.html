@@ -55,10 +55,10 @@
         <div class="d-flex flex-column fixed-width h-100 py-1 px-1" id="parapet_menu"></div>
 
         <div class="d-flex flex-column responsive-width py-1 px-1">
-            <div class="row">
-                <div class="w-100" id="parapet_config"></div>
+            <div class="d-flex">
+                <div class="w-100" id="parapet_controls"></div>
             </div>
-            <div class="row mt-2">
+            <div class="d-flex mt-2">
                 <div class="w-100" id="parapet_patients"></div>
             </div>
     
@@ -72,7 +72,7 @@
         $(document).ready(function(){
             Parapet.patients_container = $("#parapet_patients");
             Parapet.parapet_menu_container = $("#parapet_menu");
-            Parapet.initialize($("#parapet_config"));
+            Parapet.initialize($("#parapet_controls"));
             
 
         })
