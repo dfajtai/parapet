@@ -176,10 +176,48 @@ class Parapet {
         })
 
         print_btn.on("click",function(){
-            var print_content = $("<div/>").addClass("p-2 m-2");
-            var textarea = $("<textarea/>").addClass("form-control").attr("readonly",true).attr("rows",10);
-            $(textarea).val(Parapet.encrypt_json(Parapet.serializeParapetContent()));
-            print_content.append(textarea);
+            var print_content = $("<div/>").addClass("d-flex  flex-column");
+            var schedule_container = $("<div/>").css({"overflow":"auto","max-height":300});
+            print_content.append(schedule_container);
+            var btn_save_schedule = $("<button/>").addClass("btn btn-outline-dark w-100").html("Save schedule to pdf ...");
+            print_content.append($("<div/>").addClass("my-2 w-100").append(btn_save_schedule));
+            Parapet.create_schedule_table(schedule_container);
+
+            btn_save_schedule.on("click",function(){
+                const doc = new jspdf.jsPDF('p', 'mm', [297, 210]);
+
+                doc.autoTable({
+                    html: "#schedule_table",
+                    theme:"grid",
+                    styles: { cellPadding: 0, fontSize: 10, overflow: 'linebreak',},
+                    pageBreak: 'auto',
+                    rowPageBreak: 'avoid',
+                    headStyles:{valign: 'middle',  halign : 'center',  fillColor : [0, 0, 0], padding:2, minCellHeight:10},
+                    
+                })
+                doc.save("schedule.pdf");
+            })
+
+            var timing_container = $("<div/>").css({"overflow":"auto","max-height":300});
+            print_content.append(timing_container);
+            var btn_save_timing = $("<button/>").addClass("btn btn-outline-dark w-100").html("Save timing to pdf ...");
+            print_content.append($("<div/>").addClass("my-2 w-100").append(btn_save_timing));
+            Parapet.create_timing_table(timing_container);
+
+            btn_save_timing.on("click",function(){
+                const doc = new jspdf.jsPDF('l', 'mm', [297, 210]);
+
+                doc.autoTable({
+                    html: "#timing_table",
+                    theme:"grid",
+                    styles: { cellPadding: 0, fontSize: 10, overflow: 'linebreak',},
+                    pageBreak: 'auto',
+                    rowPageBreak: 'avoid',
+                    headStyles:{valign: 'middle',  halign : 'center',  fillColor : [0, 0, 0], padding:2, minCellHeight:10},
+                    
+                })
+                doc.save("timing.pdf");
+            })
             
 
             create_modal_window(modal_container,"print_modal","Print",print_content,"fullscreen");
@@ -378,7 +416,8 @@ class Parapet {
         Parapet.update_schedule_plot();
     }
 
-    static create_timing_table(){
+    static create_timing_table(container){
+        $(container).empty();
         var timing = [];
         
         for (let index = 0; index < Parapet.number_of_patients; index++) {
@@ -387,7 +426,7 @@ class Parapet {
                 var patient_timing = {};
                 patient_timing["Patient Index"] = index+1;
                 patient_timing["Patient Name"] = patient.patient_name;
-                patient_timing["Injection time"] = patient.inj_time;
+                patient_timing["Injection Time"] = patient.inj_time;
                 for (let scan_index = 0; scan_index < 3; scan_index++) {
                     const scan = patient.scans[scan_index];
                     if(scan instanceof PETScan){
@@ -408,10 +447,38 @@ class Parapet {
             }
             
         }
+        if(timing.length>0){
+            var keys = Object.keys(timing[0]);
+
+            var table = $("<table/>").addClass("w-100 table table-bordered align-middle").attr("id","timing_table");
+            var header_row = $("<tr/>");
+            $.each(keys,function(_,key){
+                header_row.append($("<th/>").html(key).attr("scope","col").addClass("text-center"));
+            })
+            table.append($("<thead/>").addClass("table-dark").append(header_row));
+
+            var table_body = $("<tbody/>");
+
+            $.each(timing,function(row_index,row){
+                var row_dom = $("<tr/>");
+                $.each(keys,function(key_index,key){
+                    row_dom.append($("<td/>").html(row[key] == null ? "-":row[key]).addClass("border"));
+                })
+                table_body.append(row_dom);
+        
+            })
+        
+            table.append(table_body);
+
+            $(container).append($("<div/>").addClass("table-responsive text-nowrap").append(table));
+
+        }
+        
 
     }
 
-    static create_schedule_table(){
+    static create_schedule_table(container){
+        $(container).empty();
         var events = [];
 
         for (let index = 0; index < Parapet.number_of_patients; index++) {
@@ -435,6 +502,32 @@ class Parapet {
             }
         }
         events.sort((a, b) => moment(a.Time,"HH:mm") - moment(b.Time,"HH:mm"));
+
+        if(events.length>0){
+            var keys = Object.keys(events[0]);
+
+            var table = $("<table/>").addClass("w-100 table table-bordered align-middle").attr("id","schedule_table");
+            var header_row = $("<tr/>");
+            $.each(keys,function(_,key){
+                header_row.append($("<th/>").html(key).attr("scope","col").addClass("text-center"));
+            })
+            table.append($("<thead/>").addClass("table-dark").append(header_row));
+
+            var table_body = $("<tbody/>");
+
+            $.each(events,function(row_index,row){
+                var row_dom = $("<tr/>");
+                $.each(keys,function(key_index,key){
+                    row_dom.append($("<td/>").html(row[key] == null ? "-":row[key]).addClass("border"));
+                })
+                table_body.append(row_dom);
+        
+            })
+        
+            table.append(table_body);
+
+            $(container).append($("<div/>").addClass("table-responsive text-nowrap").append(table));
+        }
     }
 
 
