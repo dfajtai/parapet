@@ -86,7 +86,7 @@ class Parapet {
         var modal_container = $("<div/>");
         $(container).append(modal_container);
 
-        var menu_content = $("<ul/>").addClass("nav nav-pills d-flex flex-column h-100 mb-auto text-center py-2 px-1 justify-content-start");
+        var menu_content = $("<ul/>").addClass("nav nav-pills d-flex flex-column h-100 mb-auto text-center py-2 px-2 justify-content-start");
 
         var reset_block = $("<li/>").addClass("nav-item");
         var save_block = $("<li/>").addClass("nav-item");
@@ -156,10 +156,10 @@ class Parapet {
         })
 
         import_btn.on("click",function(){
-            var import_content = $("<div/>").addClass("p-2 m-2");
+            var import_content = $("<div/>");
             var textarea = $("<textarea/>").addClass("form-control").attr("rows",10);
-            import_content.append(textarea);
-            import_content.append($("<p/>").addClass("m-2").html("Do you really want to import the inserted content?"));
+            import_content.append($("<div/>").addClass("p-2 m-2").append(textarea));
+            import_content.append($("<div/>").addClass("m-2").append($("<p/>").html("Do you really want to import the inserted content?")));
 
             create_modal_confirm(modal_container,"import_modal","Import",import_content,function(){
                 try {
@@ -377,6 +377,66 @@ class Parapet {
         Parapet.createUpdatePatientsGUI();
         Parapet.update_schedule_plot();
     }
+
+    static create_timing_table(){
+        var timing = [];
+        
+        for (let index = 0; index < Parapet.number_of_patients; index++) {
+            const patient = Parapet.patients[index];
+            if(patient instanceof PETPatient){
+                var patient_timing = {};
+                patient_timing["Patient Index"] = index+1;
+                patient_timing["Patient Name"] = patient.patient_name;
+                patient_timing["Injection time"] = patient.inj_time;
+                for (let scan_index = 0; scan_index < 3; scan_index++) {
+                    const scan = patient.scans[scan_index];
+                    if(scan instanceof PETScan){
+                        if(scan.visible){
+                            patient_timing[`Scan Nr.${scan_index+1} timing`] = scan.timing;
+                            patient_timing[`Scan Nr.${scan_index+1} start`] = moment(scan.scan_start,"HH:mm").format("HH:mm");
+                            patient_timing[`Scan Nr.${scan_index+1} pet start`] = moment(scan.pet_start,"HH:mm").format("HH:mm");
+                            patient_timing[`Scan Nr.${scan_index+1} end`] = moment(scan.scan_end,"HH:mm").format("HH:mm");
+                            continue;
+                        }
+                    }
+                    patient_timing[`Scan Nr.${scan_index+1} timing`] = null;
+                    patient_timing[`Scan Nr.${scan_index+1} start`] = null;
+                    patient_timing[`Scan Nr.${scan_index+1} pet start`] =null;
+                    patient_timing[`Scan Nr.${scan_index+1} end`] = null;
+                }
+                timing.push(patient_timing);
+            }
+            
+        }
+
+    }
+
+    static create_schedule_table(){
+        var events = [];
+
+        for (let index = 0; index < Parapet.number_of_patients; index++) {
+            const patient = Parapet.patients[index];
+            if(patient instanceof PETPatient){
+                events.push({Time:patient.inj_time,"Patient Index":index+1,"Patient Name":patient.patient_name, "Event":"Injection"});
+                for (let scan_index = 0; scan_index < 3; scan_index++) {
+                    const scan = patient.scans[scan_index];
+                    if(scan instanceof PETScan){
+                        if(scan.visible){
+                            events.push({Time:moment(scan.scan_start,"HH:mm").format("HH:mm"),"Patient Index":index+1,"Patient Name":patient.patient_name, "Event":`Scan Nr.${scan_index+1} - start`});
+                            events.push({Time:moment(scan.pet_start,"HH:mm").format("HH:mm"),"Patient Index":index+1,"Patient Name":patient.patient_name, "Event":`Scan Nr.${scan_index+1} - pet start`});
+                            events.push({Time:moment(scan.scan_end,"HH:mm").format("HH:mm"),"Patient Index":index+1,"Patient Name":patient.patient_name, "Event":`Scan Nr.${scan_index+1} - end`});
+                            continue;
+                        }
+                        break;
+                    }
+                    break;
+                }
+            
+            }
+        }
+        events.sort((a, b) => moment(a.Time,"HH:mm") - moment(b.Time,"HH:mm"));
+    }
+
 
     static reset(){
         Parapet.patients = [];

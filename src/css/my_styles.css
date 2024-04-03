@@ -164,20 +164,21 @@
 
 
 .nav-item .nav-link {
-    border: #212529 1pt solid ;
+    border: transparent solid 0.5pt ;
+    background-color: transparent; 
     transition: background-color 0.3s ease; /* Smooth transition for hover effect */
     padding: 0.5rem 1rem; /* Adjust padding as needed */
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   }
 
  .nav-item .nav-link:hover {
-background-color: #212529; /* Change background color on hover */
+    border: white solid 0.5pt;
 color: #fff; /* Change text color on hover */
 }
 
 /* Custom CSS for icon color change on hover */
 .nav-item .nav-link .fa {
-color:#212529;
+color:white;
 transition: color 0.3s ease; /* Smooth transition for icon color change */
 }
 
