@@ -604,6 +604,33 @@ class Parapet {
         }
     }
 
+    static switch_patients(p1, p2){
+        if(p1>=0 && p1<Parapet.patients.length && p2>=0 && p2<Parapet.patients.length){
+            if(! Parapet.patients[p1] instanceof PETPatient) return;
+            if(! Parapet.patients[p2] instanceof PETPatient) return;
+            
+            const patient_1_container = $(Parapet.patients[p1].container);
+            const patient_2_container = $(Parapet.patients[p2].container);
+
+            $(patient_1_container).empty();
+            $(patient_2_container).empty();
+
+            const patient_1_params = Parapet.patients[p1].serializePatient();
+            const patient_2_params = Parapet.patients[p2].serializePatient();
+
+            var new_p_1 = PETPatient.from_params(patient_2_params);
+            var new_p_2 = PETPatient.from_params(patient_1_params);
+            new_p_1.pushToPatients(p1);
+            new_p_2.pushToPatients(p2);
+
+            Parapet.patients[p1].create_GUI(patient_1_container);
+            Parapet.patients[p2].create_GUI(patient_2_container);
+
+
+            Parapet.toLocalStorage();
+        }
+    }
+
     static init_schedule_plot(container = null){
         if(! container){
             container = Parapet.parapet_schedule_container;
@@ -965,6 +992,7 @@ class PETScan {
             }
         }
     }
+
 }
 
 
@@ -1144,10 +1172,8 @@ class PETPatient {
     }
 
 
-    pushToPatients(){
+    pushToPatients(index = null){
         this.container = null;
-        this.index =  Parapet.patients.length;
-        this.slider_name = `patient_${this.index}_slider`;
 
         this.slider = null;
 
@@ -1159,19 +1185,29 @@ class PETPatient {
 
         this.visible = true;    
 
-        this.color = Parapet.colors[this.index];
 
-        this.patient_details_name = `patient_${this.index+1}_details`;
 
 
         this.slider_dragged = false;
         this.slider_pre_drag_starts = null;
 
         this.initialized = false;
+        if(index === null){
+            this.index =  Parapet.patients.length;
+            this.slider_name = `patient_${this.index}_slider`;
+            this.color = Parapet.colors[this.index];
+            this.patient_details_name = `patient_${this.index}_details`;
+            Parapet.patients.push(this);
 
-        Parapet.patients.push(this);
+        }
+        else{
+            this.index =  index;
+            this.slider_name = `patient_${index}_slider`;
+            this.color = Parapet.colors[index];
+            this.patient_details_name = `patient_${index}_details`;
+            Parapet.patients[index] = this;
+        }
 
-        
     }
 
 

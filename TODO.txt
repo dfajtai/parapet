@@ -21,8 +21,8 @@ Printing:
 1. extract timings
     - extract timings form scans                                    OK
     -> extract timings form patients                                partially
-2. build table - show in modal?
-3. print table to pdf
+2. build table - show in modal?                                     OK
+3. print table to pdf                                               OK
 
 -------------------------------------------
 
@@ -31,3 +31,19 @@ Validation:
 0. finalize checkbox? - only validate if finalized.                 not necessary 
 1. check for overlaping timings                                     nice alternative
 2. create plot?                                                     OK - nicely done
+
+
+-------------------------------------------
+
+More user interface stuff...
+
+1. switch patients
+2. move up, move down
+3. move synced ( check box )
+
+
+-------------------------------------------
+
+Preview presets
+
+1. Modal and table(s) to show preset parameters.
