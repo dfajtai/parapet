@@ -21,7 +21,7 @@ class Parapet {
 
     static _autosave = false;
 
-    static encrypt = true;
+    static encrypt = false;
 
     static get autosave(){
         return Parapet._autosave;
@@ -439,7 +439,8 @@ class Parapet {
                     const patient_params = patients_params[index];
                     var patient = PETPatient.from_params(patient_params);
                     patient.pushToPatients();
-                    patient.set_visibility(patient_params.visible)
+                    patient.set_visibility(patient_params.visible);
+                    patient.update_params_gui();
 
                     
                 }
@@ -1092,6 +1093,7 @@ class PETPatient {
         this.patient_name = patient_name;
         this.scans = [];
         this.visible = visible;
+        this.preset = null;
 
     }
 
@@ -1135,8 +1137,8 @@ class PETPatient {
         }
     }
 
-    static from_params({number_of_scans,inj_time,patient_name,scans, visible}){
-        var patient =  new PETPatient(number_of_scans=number_of_scans,inj_time=inj_time,patient_name = patient_name, visible = visible);
+    static from_params({number_of_scans,inj_time,patient_name,scans, visible, preset}){
+        var patient =  new PETPatient(number_of_scans=number_of_scans,inj_time=inj_time,patient_name = patient_name, visible = visible, preset = preset);
         if(isArray(scans)){
             for (let index = 0; index < scans.length; index++) {
                 const scan_params = scans[index];
@@ -1144,7 +1146,9 @@ class PETPatient {
                 patient.add_scan(scan);
                 if(index<number_of_scans){
                     scan.set_visibility(true);
+
                 }
+                patient.preset = preset;
                 
             }
         }
@@ -1236,6 +1240,7 @@ class PETPatient {
         this.slider_pre_drag_starts = null;
         this.slider_lock = false;
 
+
         this.initialized = false;
 
         if(index === null){
@@ -1296,7 +1301,7 @@ class PETPatient {
             if(preset instanceof PETPatient){
                 this.number_of_scans = preset.number_of_scans;
                 this.scans = [];
-
+                this.preset = preset_name;
                 if(this.scan_details_div){
                     $(this.scan_details_div).empty();
                 }
@@ -1322,7 +1327,7 @@ class PETPatient {
     serializePatient(){
         var serialized_object = {patient_name : this.patient_name,
                                  number_of_scans : this.number_of_scans,
-                                 inj_time: this.inj_time, visible: this.visible
+                                 inj_time: this.inj_time, visible: this.visible, preset: this.preset
         }
         var serialized_scans = []
         for (let index = 0; index < this.scans.length; index++) {
@@ -1355,6 +1360,10 @@ class PETPatient {
         if(this.params_div){
             let inj_time_div = this.params_div.find(`[name="inj_time"]`);
             inj_time_div.val(moment(this.inj_time,"HH:mm").format("HH:mm"));
+
+            if(this.preset){
+                this.params_div.find(`#preset_select`).val(this.preset);
+            }
         }
         this.index = this.index;
     }
@@ -1364,13 +1373,15 @@ class PETPatient {
             PETPatient.create_presets();
         }
 
-        var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for","presets").html(label);
-        var _select_dropdow = $("<select/>").addClass("form-select").attr("type","text").attr("id","presets_select").attr("name","presets");
+        var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for","preset").html(label);
+        var _select_dropdow = $("<select/>").addClass("form-select").attr("type","text").attr("id","preset_select").attr("name","preset");
         _select_dropdow.append($("<option/>").html("Choose preset...").prop('selected',true).attr("value","").attr("disabled",true));
         $.each(PETPatient.presets, function (preset_name, preset_patient) { 
             _select_dropdow.append($("<option/>").html(preset_name).attr("value",preset_name));
         });
         
+        if(this.preset) _select_dropdow.val(this.preset);
+
         _select_dropdow.on("change",function(event){
             const val = event.target.value;
             if(val!=""){
@@ -1388,7 +1399,7 @@ class PETPatient {
 
     #show_name_block(container){
         var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for","patient_name").html(`Nr.${this.index+1}`);
-        var _input = $("<input/>").addClass("form-control ").attr("type","text").attr("id","presets_select").attr("name","patient_name");
+        var _input = $("<input/>").addClass("form-control ").attr("type","text").attr("id","patient_name").attr("name","patient_name");
         _input.attr("placeholder","Patient Name (GDPR!)")
         _input.val(this.patient_name);
         
