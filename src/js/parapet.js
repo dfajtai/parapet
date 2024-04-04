@@ -189,10 +189,10 @@ class Parapet {
                 doc.autoTable({
                     html: "#schedule_table",
                     theme:"grid",
-                    styles: { cellPadding: 0, fontSize: 10, overflow: 'linebreak',},
+                    styles: { cellPadding: 0, fontSize: 10, overflow: 'linebreak', minCellHeight : 8, valign:"middle", halign:"center",},
                     pageBreak: 'auto',
                     rowPageBreak: 'avoid',
-                    headStyles:{valign: 'middle',  halign : 'center',  fillColor : [0, 0, 0], padding:2, minCellHeight:10},
+                    headStyles:{valign: 'middle',  halign : 'center',  padding:2, minCellHeight:10},
                     
                 })
                 doc.save("schedule.pdf");
@@ -210,10 +210,10 @@ class Parapet {
                 doc.autoTable({
                     html: "#timing_table",
                     theme:"grid",
-                    styles: { cellPadding: 0, fontSize: 10, overflow: 'linebreak',},
+                    styles: { cellPadding: 0, fontSize: 10, overflow: 'linebreak', minCellHeight : 8, valign:"middle", halign:"center",},
                     pageBreak: 'auto',
                     rowPageBreak: 'avoid',
-                    headStyles:{valign: 'middle',  halign : 'center',  fillColor : [0, 0, 0], padding:2, minCellHeight:10},
+                    headStyles:{valign: 'middle',  halign : 'center', padding:2, minCellHeight:10},
                     
                 })
                 doc.save("timing.pdf");
@@ -461,7 +461,7 @@ class Parapet {
             $.each(keys,function(_,key){
                 header_row.append($("<th/>").html(key).attr("scope","col").addClass("text-center"));
             })
-            table.append($("<thead/>").addClass("table-dark").append(header_row));
+            table.append($("<thead/>").addClass("table-light").append(header_row));
 
             var table_body = $("<tbody/>");
 
@@ -517,7 +517,7 @@ class Parapet {
             $.each(keys,function(_,key){
                 header_row.append($("<th/>").html(key).attr("scope","col").addClass("text-center"));
             })
-            table.append($("<thead/>").addClass("table-dark").append(header_row));
+            table.append($("<thead/>").addClass("table-light").append(header_row));
 
             var table_body = $("<tbody/>");
 
