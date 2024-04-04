@@ -37,9 +37,9 @@ Validation:
 
 More user interface stuff...
 
-1. switch patients
-2. move up, move down
-3. move synced ( check box )
+1. switch patients                                                  OK
+2. move up, move down                                               OK
+3. move synced ( check box )                                        OK
 
 
 -------------------------------------------

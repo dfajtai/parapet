@@ -163,25 +163,60 @@
 }
 
 
-.nav-item .nav-link {
-    border: transparent solid 0.5pt ;
-    background-color: transparent; 
-    transition: background-color 0.3s ease; /* Smooth transition for hover effect */
-    padding: 0.5rem 1rem; /* Adjust padding as needed */
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  }
+.nav-item.parapet-menu .nav-link {
+    border: transparent solid 0.5pt;
+    background-color: transparent;
+    transition: background-color 0.3s ease;
+    /* Smooth transition for hover effect */
+    padding: 0.5rem 1rem;
+    /* Adjust padding as needed */
+    /* box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); */
+}
 
- .nav-item .nav-link:hover {
+.nav-item.parapet-menu .nav-link:hover {
     border: white solid 0.5pt;
-color: #fff; /* Change text color on hover */
+    color: #fff;
+    /* Change text color on hover */
 }
 
 /* Custom CSS for icon color change on hover */
-.nav-item .nav-link .fa {
-color:white;
-transition: color 0.3s ease; /* Smooth transition for icon color change */
+.nav-item.parapet-menu .nav-link .fa {
+    color: white;
+    transition: color 0.3s ease;
+    /* Smooth transition for icon color change */
 }
 
-.nav-item .nav-link:hover .fa {
-color: #fff; /* Change icon color on hover */
+.nav-item.parapet-menu .nav-link:hover .fa {
+    color: #fff;
+    /* Change icon color on hover */
+}
+
+
+
+.nav-item.parapet-operate .nav-link {
+    border: transparent solid 0.5pt;
+    background-color: transparent;
+    transition: background-color 0.3s ease;
+    /* Smooth transition for hover effect */
+    padding: 0.5rem 1rem;
+    /* Adjust padding as needed */
+    /* box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); */
+}
+
+.nav-item.parapet-operate .nav-link:hover {
+    border: black solid 0.5pt;
+    color: black;
+    /* Change text color on hover */
+}
+
+/* Custom CSS for icon color change on hover */
+.nav-item.parapet-operate .nav-link .fa {
+    color: black;
+    transition: color 0.3s ease;
+    /* Smooth transition for icon color change */
+}
+
+.nav-item.parapet-operate .nav-link:hover .fa {
+    color:black;
+    /* Change icon color on hover */
 }

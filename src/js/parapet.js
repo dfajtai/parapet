@@ -56,15 +56,17 @@ class Parapet {
                 new_patient.pushToPatients();
             }
         }
-        for (let index = 0; index < new_count; index++) {
-            Parapet.patients[index].set_visibility(true);
-        }
-
 
         Parapet.number_of_patients = new_count;
 
+        for (let index = 0; index < new_count; index++) {
+            Parapet.patients[index].set_visibility(true);
+            Parapet.patients[index].update_params_gui();
+        }
+
         Parapet.createUpdatePatientsGUI();
         Parapet.update_schedule_plot();
+        
 
         if(Parapet.autosave) Parapet.toLocalStorage();
     }
@@ -74,6 +76,20 @@ class Parapet {
         param_keys.forEach(key => {
             $(Parapet.parapet_config_container).find(`input[param="${key}"]`).val(Parapet[key]);
         });
+    }
+
+    static get_selected_indices(){
+        var selected_indices = [];
+        for (let index = 0; index < Parapet.number_of_patients; index++) {
+            const patient = Parapet.patients[index];
+            if(patient instanceof PETPatient){
+                if(patient.visible && patient.selected){
+                    selected_indices.push(patient.index);
+                }
+            }
+            
+        }
+        return selected_indices;
     }
 
 
@@ -88,18 +104,23 @@ class Parapet {
 
         var menu_content = $("<ul/>").addClass("nav nav-pills d-flex flex-column h-100 mb-auto text-center py-2 px-2 justify-content-start");
 
-        var reset_block = $("<li/>").addClass("nav-item");
-        var save_block = $("<li/>").addClass("nav-item");
-        var export_block = $("<li/>").addClass("nav-item");
-        var import_block = $("<li/>").addClass("nav-item");
-        var print_block = $("<li/>").addClass("nav-item");
 
+
+        var reset_block = $("<li/>").addClass("nav-item parapet-menu");
+        var save_block = $("<li/>").addClass("nav-item parapet-menu");
+        var export_block = $("<li/>").addClass("nav-item parapet-menu");
+        var import_block = $("<li/>").addClass("nav-item parapet-menu");
+        var print_block = $("<li/>").addClass("nav-item parapet-menu");
+        var swap_block = $("<li/>").addClass("nav-item parapet-menu mt-5");
+
+        
         menu_content.append(reset_block);
         menu_content.append(save_block);
         menu_content.append(export_block);
         menu_content.append(import_block);
         menu_content.append(print_block);
-
+        menu_content.append(swap_block);
+        
 
         var reset_btn = $("<a/>").addClass("nav-link link-dark py-3 my-1");
         reset_btn.attr("data-bs-toggle","tooltip").attr("data-bs-placement","right");
@@ -131,6 +152,12 @@ class Parapet {
         print_btn.attr("title","Print");
         print_btn.append($("<i/>").addClass("fa fa-print fa-solid"));
         print_block.append(print_btn);
+
+        var swap_btn = $("<a/>").addClass("nav-link link-dark py-3 my-1 d-none");
+        swap_btn.attr("data-bs-toggle","tooltip").attr("data-bs-placement","right");
+        swap_btn.attr("title","Swap").attr("id","swap_btn");
+        swap_btn.append($("<i/>").addClass("fa fa-shuffle"));
+        swap_block.append(swap_btn);
 
         $(container).append(menu_content);
 
@@ -223,6 +250,12 @@ class Parapet {
             create_modal_window(modal_container,"print_modal","Print",print_content,"fullscreen");
             $(modal_container).find("#print_modal").modal('show');
         })
+
+        swap_btn.on("click",function(){
+            var indices = Parapet.get_selected_indices();
+            if(indices.length==2) Parapet.swap_patients(indices[0],indices[1]);
+        })
+
 
     }
 
@@ -604,7 +637,7 @@ class Parapet {
         }
     }
 
-    static switch_patients(p1, p2){
+    static swap_patients(p1, p2){
         if(p1>=0 && p1<Parapet.patients.length && p2>=0 && p2<Parapet.patients.length){
             if(! Parapet.patients[p1] instanceof PETPatient) return;
             if(! Parapet.patients[p2] instanceof PETPatient) return;
@@ -1081,11 +1114,24 @@ class PETPatient {
 
     set inj_time(value){
         if(value){
-            this._inj_time = moment(value,"HH:mm");
-            if(this.container){
-                Parapet.update_schedule_plot();
-                if(Parapet.autosave) Parapet.toLocalStorage();
+            if(moment(value,"HH:mm") < moment(Parapet.work_start,"HH:mm")){
+                this._inj_time = moment(Parapet.work_start,"HH:mm");
+                if(this.container){
+                    this.update_params_gui();
+                    this.paramsToSlider();
+                    Parapet.update_schedule_plot();
+                    if(Parapet.autosave) Parapet.toLocalStorage();
+                }
             }
+            else{
+                this._inj_time = moment(value,"HH:mm");
+                if(this.container){
+                    Parapet.update_schedule_plot();
+                    if(Parapet.autosave) Parapet.toLocalStorage();
+                }
+            }
+
+
         }
     }
 
@@ -1184,14 +1230,14 @@ class PETPatient {
         this.scan_details_div = null;
 
         this.visible = true;    
-
-
-
+        this._selected = false;
 
         this.slider_dragged = false;
         this.slider_pre_drag_starts = null;
+        this.slider_lock = false;
 
         this.initialized = false;
+
         if(index === null){
             this.index =  Parapet.patients.length;
             this.slider_name = `patient_${this.index}_slider`;
@@ -1210,6 +1256,39 @@ class PETPatient {
 
     }
 
+    set index(value){
+        this._index = value;
+
+        if(value == 0)
+            $(this.container).find(`#move_up`).prop("disabled",true);
+        else
+            $(this.container).find(`#move_up`).prop("disabled",false);
+
+        if(value == Parapet.number_of_patients-1)
+            $(this.container).find(`#move_down`).prop("disabled",true);
+        else
+            $(this.container).find(`#move_down`).prop("disabled",false);
+    }
+
+    get index(){
+        return this._index;
+    }
+
+    set selected(value){
+        this._selected = value;
+        $(this.container).find(`#is_selected`).prop("checked",value);
+        var indices = Parapet.get_selected_indices();
+        if(indices.length==2){
+            $(Parapet.parapet_menu_container).find("#swap_btn").removeClass("d-none");
+        }
+        else{
+            $(Parapet.parapet_menu_container).find("#swap_btn").addClass("d-none");
+        }
+    }
+
+    get selected(){
+        return this._selected;
+    }
 
     initFromPreset(preset_name){
         if(preset_name in PETPatient.presets){
@@ -1277,6 +1356,7 @@ class PETPatient {
             let inj_time_div = this.params_div.find(`[name="inj_time"]`);
             inj_time_div.val(moment(this.inj_time,"HH:mm").format("HH:mm"));
         }
+        this.index = this.index;
     }
 
     #show_presets_block(container,label = "Preset"){
@@ -1337,6 +1417,50 @@ class PETPatient {
         }
     }
 
+    #create_operate_block(container){
+        var operate_content = $("<ul/>").addClass("nav d-flex flex-column h-100 mb-auto text-center justify-content-evenly");
+
+        var up_block = $("<li/>").addClass("nav-item parapet-operate");
+        var select_block = $("<li/>").addClass("nav-item parapet-operate");
+        var down_block = $("<li/>").addClass("nav-item parapet-operate");
+
+        operate_content.append(up_block);
+        operate_content.append(select_block);
+        operate_content.append(down_block);
+
+        var up_btn = $("<button/>").addClass("btn btn-light rounded-pill");
+        up_btn.attr("data-bs-toggle","tooltip").attr("data-bs-placement","right");
+        up_btn.attr("title","Move up").attr("id","move_up");
+        up_btn.append($("<i/>").addClass("fa fa-arrow-up fa-solid"));
+        up_block.append(up_btn);
+
+        var select_btn = $("<input/>").attr("type","checkbox").attr("id","is_selected");
+        select_btn.attr("data-bs-toggle","tooltip").attr("data-bs-placement","right");
+        select_btn.attr("title","Select patient");
+        select_block.append(select_btn);
+
+        select_btn.on("change",function(){
+            this.selected = $(select_btn).prop("checked");
+        }.bind(this))
+
+        var down_btn = $("<button/>").addClass("btn btn-light rounded-pill");
+        down_btn.attr("data-bs-toggle","tooltip").attr("data-bs-placement","right");
+        down_btn.attr("title","Move down").attr("id","move_down");
+        down_btn.append($("<i/>").addClass("fa fa-arrow-down fa-solid"));
+        down_block.append(down_btn);
+
+        up_btn.on("click",function(){
+            Parapet.swap_patients(this.index,this.index-1);
+        }.bind(this))
+
+        down_btn.on("click",function(){
+            Parapet.swap_patients(this.index,this.index+1);
+        }.bind(this))
+
+
+        $(container).empty().append(operate_content)
+    }
+
     create_show_hide_scan_details(new_num_of_scans){                 
         if(new_num_of_scans>this.scans.length){
             for (let index = this.scans.length; index < new_num_of_scans; index++) {
@@ -1371,7 +1495,16 @@ class PETPatient {
         $(params_container).empty();
         $(details_container).empty();
 
-        $(params_container).addClass("d-flex flex-column");
+        $(params_container).addClass("d-flex");
+
+        var operate_container = $("<div/>").addClass("d-flex flex-column h-100");
+        var params_block = $("<div/>").addClass("d-flex flex-column");
+
+        $(params_container).append($("<div/>").append(operate_container).addClass("pe-4"));
+        $(params_container).append($("<div/>").append(params_block));
+
+        this.#create_operate_block(operate_container);
+        this.selected = false;
 
         var name_block = $("<div/>").attr("id","name_block").addClass("d-flex");
         var preset_block = $("<div/>").attr("id","preset_block").addClass("d-flex");
@@ -1396,7 +1529,7 @@ class PETPatient {
 
         main_props.append(second_row);
         
-        $(params_container).append(main_props);
+        $(params_block).append(main_props);
 
         var number_of_scans_block = $("<div/>").attr("id","number_of_scans_block").addClass("row mb-1");
         // var inj_delay_block = $("<div/>").attr("id","inj_delay_block").addClass("row mb-1");
@@ -1472,11 +1605,11 @@ class PETPatient {
         
                 
 
-        $(params_container).find("input").on("change",function(){
+        $(params_container).find("input:not(:checkbox)").on("change",function(){
             if(this.initialized) this.paramsToSlider();
         }.bind(this))
 
-        $(details_first_row).find("input").on("change",function(){
+        $(details_first_row).find("input:not(:checkbox)").on("change",function(){
             if(this.initialized) this.paramsToSlider();
 
         }.bind(this))
@@ -1608,11 +1741,35 @@ class PETPatient {
             if(!this.slider_dragged)  
                 slider.noUiSlider.set(this.slider_pre_drag_starts);
             else{
-                var vals = slider.noUiSlider.get(true);
-                var start_min = vals[0]+this.first_scan_start_delay;
-                var pet_start = moment(Parapet.work_start,"HH:mm").add(start_min,"minutes");
-                this.inj_time = pet_start.subtract(this.first_scan_timing,"minutes").format("HH:mm");
-                this.update_params_gui();
+                // double firing...
+                if(this.slider_lock == false){
+                    this.slider_lock = true;
+                    var vals = slider.noUiSlider.get(true);
+                    var diff = vals[0] - this.slider_pre_drag_starts[0];
+                    if(this.selected){
+                        var indices = Parapet.get_selected_indices();
+                        for (let _index = 0; _index < indices.length; _index++) {
+                            const index = indices[_index];
+                            if(index==this.index) continue;
+                            const patient = Parapet.patients[index];
+                            if(patient instanceof PETPatient){
+                                patient.inj_time = moment(patient.inj_time,"HH:mm").add(Math.floor(diff),"minutes");
+                                patient.update_params_gui();
+                                patient.paramsToSlider();
+                            }
+                            
+                        }
+                    }
+                    // console.log(this.slider_pre_drag_starts[0]);
+                    // console.log(vals[0]);
+                    // console.log(diff);
+    
+                    var start_min = Math.floor(vals[0])+this.first_scan_start_delay;
+                    var pet_start = moment(Parapet.work_start,"HH:mm").add(start_min,"minutes");
+                    this.inj_time = pet_start.subtract(this.first_scan_timing,"minutes").format("HH:mm");
+                    this.update_params_gui();
+                    setTimeout(function(){this.slider_lock = false}.bind(this),100)
+                }
             }
         }.bind(this));
 
@@ -1645,6 +1802,7 @@ class PETPatient {
         this.create_slider_gui(this.slider_div);
         
         this.initialized = true;
+        this.index = this.index;
 
     }
 }
