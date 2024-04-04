@@ -920,9 +920,9 @@ class PETScan {
             "fov_duration",
             "FOV dur. [min]",
             this.fov_duration,
-            {"min":0,"max":15,"step":1},
+            {"min":0,"max":30,"step":0.5},
             function(val){
-                this.fov_duration = parseInt(val);
+                this.fov_duration = parseFloat(val);
             }.bind(this))       
         
 

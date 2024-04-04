@@ -8,7 +8,7 @@ function dynamicRangeInput(container, name, label, default_value, arg = null, on
     _input.attr("type","range").attr("id",name+"Input").attr("name",name).attr("data-name",name).attr("data-label",label);
     $(_input).attr("data-value","");
 
-    if(arg.hasOwnProperty("step")) _input.attr("step",arg.step);
+    if(arg.hasOwnProperty("step")) _input.attr("step",parseFloat(arg.step));
     if(arg.hasOwnProperty("min")) _input.attr("min",arg.min);
     if(arg.hasOwnProperty("max")) _input.attr("max",arg.max);
 
@@ -30,8 +30,15 @@ function dynamicRangeInput(container, name, label, default_value, arg = null, on
     })
 
     $(current).on("change",function(){
-        $(_input).val($(this).val()).trigger("change");
-        $(_input).prop("data-value",$(this).val());
+        var val = $(this).val();
+        if(arg.hasOwnProperty("step")){
+            var step = parseFloat(arg.step)
+            val = Math.floor(val/step)*step;
+        }
+                    
+        $(_input).val(val).trigger("change");
+        $(_input).prop("data-value",val);
+
 
     })
 
