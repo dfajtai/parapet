@@ -21,7 +21,7 @@ class Parapet {
 
     static _autosave = false;
 
-    static encrypt = false;
+    static encrypt = true;
 
     static get autosave(){
         return Parapet._autosave;
