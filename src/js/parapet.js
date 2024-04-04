@@ -447,8 +447,14 @@ class Parapet {
             }
             
         }
+
+
         if(timing.length>0){
             var keys = Object.keys(timing[0]);
+
+            // filter out null columns
+            timing = dropNullCols(timing,keys);
+            keys = Object.keys(timing[0]);
 
             var table = $("<table/>").addClass("w-100 table table-bordered align-middle").attr("id","timing_table");
             var header_row = $("<tr/>");

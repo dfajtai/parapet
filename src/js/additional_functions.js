@@ -12,85 +12,98 @@ function isArray(val){
 }
 
 
-
-function create_modal_confirm(container, modal_id, title, content = null, callback = null){
-    $(container).empty();
-    var modal_root = $("<div/>").addClass("modal fade").attr("id",modal_id).attr("tabindex","-1");
-    var modal_dialog = $("<div/>").addClass("modal-dialog modal-md");
-    var modal_content = $("<div/>").addClass("modal-content");
-
-    var modal_header= $("<div/>").addClass("modal-header");
-    modal_header.append($("<h5/>").addClass("modal-title display-3 fs-3").html(title));
-    modal_header.append($("<button/>").addClass("btn-close").attr("data-bs-dismiss","modal").attr("aria-label","Close"));
-
-    var modal_body = $("<div/>").addClass("modal-body d-flex flex-column");
-
-    modal_body.append(content);
-
-    var confirm_div = $("<div/>").addClass("form-check");
-
-    var confirm_div = $("<div/>").addClass("form-check p-3");
-    var confirm_switch = $("<input/>").addClass("form-check-input ms-2 me-1").attr("type","checkbox").attr("id","confirm_switch");
-    confirm_div.append(confirm_switch);
-    confirm_div.append($("<label/>").addClass("form-check-label").attr("for","confirm_switch").html("Check to confirm"));
-    modal_body.append(confirm_div);
-
-    var modal_footer= $("<div/>").addClass("modal-footer");
-    modal_footer.append($("<button/>").addClass("btn btn-secondary").attr("data-bs-dismiss","modal").attr("aria-label","Close").html("Close"));
-    var confirm_btn = $("<button/>").addClass("btn btn-primary d-none").attr("aria-label","Confirm").html("Confirm").attr("id","confirm-btn")
-    modal_footer.append(confirm_btn);
-
-    modal_content.append(modal_header);
-    modal_content.append(modal_body);
-    modal_content.append(modal_footer);
-
-    modal_dialog.html(modal_content);
-    modal_root.html(modal_dialog);
-
-    confirm_switch.on("change",function(){
-        if($(this).prop('checked')){
-            $(confirm_btn).removeClass("d-none");
-        }
-        else{
-            $(confirm_btn).addClass("d-none");
-        }
-
-    })
-    $(modal_footer).find("#confirm-btn").on("click",function(){
-        if( typeof callback == 'function'){
-            callback();
-            $(modal_root).modal('hide');
-        }
+function getCol(objlist, col){
+    var vals = [];
+    $.each(objlist,function(index,entry){
+        if(entry.hasOwnProperty(col))  vals.push(entry[col]);
     })
 
-    container.append(modal_root);
+    return vals;
 }
 
-function create_modal_window(container, modal_id, title, content = null, size = "md"){
-    $(container).empty();
-    var modal_root = $("<div/>").addClass("modal fade").attr("id",modal_id).attr("tabindex","-1");
-    var modal_dialog = $("<div/>").addClass(`modal-dialog modal-${size}`);
-    var modal_content = $("<div/>").addClass("modal-content");
 
-    var modal_header= $("<div/>").addClass("modal-header");
-    modal_header.append($("<h5/>").addClass("modal-title display-3 fs-3").html(title));
-    modal_header.append($("<button/>").addClass("btn-close").attr("data-bs-dismiss","modal").attr("aria-label","Close"));
+function onlyUnique(value, index, array) {
+    return array.indexOf(value) === index;
+}
 
-    var modal_body = $("<div/>").addClass("modal-body d-flex flex-column");
+function getColUnique(objlist, col){
+    var vals = getCol(objlist,col);
+    var unique = vals.filter(onlyUnique);
 
-    modal_body.append(content);
+    return unique;
+}
 
-    var modal_footer= $("<div/>").addClass("modal-footer");
-    modal_footer.append($("<button/>").addClass("btn btn-secondary").attr("data-bs-dismiss","modal").attr("aria-label","Close").html("Close"));
+function parse_val(val, dummy = false){
+    if(dummy) return val;
 
+    if(val==null) return null;
+    if(val==="") return null;
+    var num_val = parseInt(val);
 
-    modal_content.append(modal_header);
-    modal_content.append(modal_body);
-    modal_content.append(modal_footer);
+    if(String(val)!=String(num_val)){
+        var _num_val = parseFloat(val);
+        if(String(val)!=String(_num_val)){
+            return val;
+        };
+        return _num_val;
+    };
+    return num_val;
+}
 
-    modal_dialog.html(modal_content);
-    modal_root.html(modal_dialog);
+function nullify_obj(obj, parse = false){
+    // {'key':null, 'key2':null , ...} -> null
+    if(!isObject(obj)) return obj;
 
+    var keys = Object.keys(obj);
+    var non_null_count = 0;
 
-    container.append(modal_root);
+    var res = {};
+    $.each(keys,function(index,key){
+        let val = parse_val(obj[key],parse);
+        if(val!=null){
+            non_null_count+=1;
+            res[key]=val;
+        }
+    })
+    if(non_null_count == 0) return null;
+
+    return res;
+}
+
+function nullify_array(array, parse = false){
+    if(!Array.isArray(array)) return array;
+
+    var non_null_count = 0;
+    var res = [];
+    $.each(array,function(index,entry){
+        let val = parse_val(entry,parse);
+        if(entry!=null){
+            non_null_count+=1;
+            res.push(val);
+        }
+    })
+    if(non_null_count == 0) return null;
+
+    return res;
+}
+
+function dropNullCols(objlist,cols){
+    var cols_to_drop = [];
+    for (let index = 0; index < cols.length; index++) {
+        const col = cols[index];
+
+        var col_values = getColUnique(objlist,col);
+        if(nullify_array(col_values)===null) cols_to_drop.push(col);
+    }
+
+    for (let index = 0; index < objlist.length; index++) {
+        for (let _index = 0; _index < cols_to_drop.length; _index++) {
+            const col = cols_to_drop[_index];
+            delete(objlist[index][col]);
+            
+        }
+        
+    }
+
+    return objlist;
 }
