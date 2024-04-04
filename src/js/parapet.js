@@ -171,7 +171,7 @@ class Parapet {
                 } catch (error) {
                     alert(error);
                 }
-            });
+            },"lg");
             $(modal_container).find("#import_modal").modal('show');
         })
 
@@ -975,29 +975,48 @@ class PETPatient {
 
     static create_presets(){
         var fdg = new PETPatient(1);
-        fdg.add_scan(new PETScan(90,3,5,5,5));
+        fdg.add_scan(new PETScan(60,1,20,5,5));
+
         var fdg_wb = new PETPatient(1);
-        fdg_wb.add_scan(new PETScan(90,7,5,5,5));
+        fdg_wb.add_scan(new PETScan(60,8,3,5,5));
+
+        var fdg_wb_leg = new PETPatient(2);
+        fdg_wb_leg.add_scan(new PETScan(60,8,3,5,0));
+        fdg_wb_leg.add_scan(new PETScan(null,8,1.5,0,10));
+
+        var fdg_leg_wb = new PETPatient(2);
+        fdg_leg_wb.add_scan(new PETScan(40,8,1.5,5,0));
+        fdg_leg_wb.add_scan(new PETScan(60,8,3,0,10));
+
 
         var dopa = new PETPatient(1);
-        dopa.add_scan(new PETScan(60,3,5,5,5));
-        var dopa_wb = new PETPatient(1);
-        dopa_wb.add_scan(new PETScan(60,7,5,5,5));
+        dopa.add_scan(new PETScan(10,1,20,5,5));
+        
+        var dopa_wb = new PETPatient(2);
+        dopa_wb.add_scan(new PETScan(10,10,3,5,5));
+        dopa_wb.add_scan(new PETScan(60,10,3,5,5));
 
-        var choline = new PETPatient(2);        
-        choline.add_scan(new PETScan(10,3,5,5,5));
-        choline.add_scan(new PETScan(60,3,5,5,5));
+
+
+        var choline_parathyorid = new PETPatient(2);        
+        choline_parathyorid.add_scan(new PETScan(10,3,5,5,5));
+        choline_parathyorid.add_scan(new PETScan(60,3,5,5,5));
+
         var choline_prostate = new PETPatient(2);
-        choline_prostate.add_scan(new PETScan(2,3,5,5,5));
-        choline_prostate.add_scan(new PETScan(60,3,5,5,5));
+        choline_prostate.add_scan(new PETScan(2,2,3,5,5));
+        choline_prostate.add_scan(new PETScan(60,10,3,5,5));
 
         PETPatient.presets = {
-            fgd:fdg,
-            fdg_wb:fdg_wb,
-            dopa:dopa,
-            dopa_wb:dopa_wb,
-            choline:choline,
-            choline_prostate:choline_prostate
+            "FDG - brain":fdg,
+            "FDG - WB":fdg_wb,
+            "FDG - WB & Leg":fdg_wb_leg,            
+            "FDG - Leg & WB":fdg_leg_wb,
+
+            "DOPA - brain":dopa,
+            "DOPA - WB":dopa_wb,
+
+            "Choline - parathyroid":choline_parathyorid,
+            "Choline - prostate":choline_prostate
         }
 
         // console.log(PETPatient.presets);

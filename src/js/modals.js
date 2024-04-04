@@ -1,7 +1,7 @@
-function create_modal_confirm(container, modal_id, title, content = null, callback = null){
+function create_modal_confirm(container, modal_id, title, content = null, callback = null, size = "md"){
     $(container).empty();
     var modal_root = $("<div/>").addClass("modal fade").attr("id",modal_id).attr("tabindex","-1");
-    var modal_dialog = $("<div/>").addClass("modal-dialog modal-md");
+    var modal_dialog = $("<div/>").addClass(`modal-dialog modal-${size}`);
     var modal_content = $("<div/>").addClass("modal-content");
 
     var modal_header= $("<div/>").addClass("modal-header");
