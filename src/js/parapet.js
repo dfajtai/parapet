@@ -213,7 +213,7 @@ class Parapet {
                     styles: { cellPadding: 0, fontSize: 10, overflow: 'linebreak', minCellHeight : 8, valign:"middle", halign:"center",},
                     pageBreak: 'auto',
                     rowPageBreak: 'avoid',
-                    headStyles:{valign: 'middle',  halign : 'center', padding:2, minCellHeight:10},
+                    headStyles:{valign: 'middle', fontSize: 8, halign : 'center', padding:2, minCellHeight:10},
                     
                 })
                 doc.save("timing.pdf");
