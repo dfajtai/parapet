@@ -1065,7 +1065,7 @@ class Parapet {
         }
 
         var dataset = {
-            label:`Current dose @`,
+            label:`Dose [MBq]`,
             pointHoverRadius: 0,
             pointBorderWidth:0,
             borderWidth: 2,
