@@ -652,7 +652,10 @@ class Parapet {
             }
         })
         Parapet.init_schedule_plot();
+        Parapet.init_dosage_plot();
+
         Parapet.update_schedule_plot();
+        
     }
 
     static createUpdatePatientsGUI(container = null){
@@ -863,16 +866,20 @@ class Parapet {
             Parapet.work_end,
             Parapet.t0_time ? moment(Parapet.t0_time,"HH:mm").format("HH:mm") : null,
             function (val) {
-                if(this.initialized){
+                if(Parapet.initialized){
                     if(val==""){
                         val = moment(Parapet.work_start, "HH:mm").format("HH:mm");
                         $(t0_time_block).find("input").val(val);
                     }
-    
-                    Parapet.t0_time = moment(val, "HH:mm").format("HH:mm");
+                    if(Parapet.t0_time !=  moment(val, "HH:mm").format("HH:mm")){
+                        Parapet.t0_time = moment(val, "HH:mm").format("HH:mm");
+                        if(Parapet.dosage_plot) Parapet.update_dose_plot();
+
+                    }
+
                 }
                 
-            }.bind(this)
+            }
         );
 
 
@@ -885,8 +892,8 @@ class Parapet {
         Parapet.dosage_plot = new Chart(chart_element, config);
 
 
-        $(params_div).find("input:not(:checkbox)").on("change",function(){
-            if(Parapet.initialized) Parapet.update_dose_plot();
+        $(params_div).find("input").on("change",function(){
+            Parapet.update_dose_plot();
         })
 
 
@@ -1063,7 +1070,12 @@ class Parapet {
             pointBorderWidth:0,
             borderWidth: 2,
             pointRadius:0,
-            data: data
+            data: data,
+            fill: {
+                target: 'origin',
+                above: 'rgba(0, 255, 0, 0.5)',   
+                below: 'rgb(255, 0, 0, 0.5)'  
+              }
         }
 
         if(!Parapet.dosage_plot){
