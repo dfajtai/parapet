@@ -12,6 +12,12 @@ class Parapet {
     static parapet_config_container = null;
     static parapet_schedule_container = null;
     static schedule_plot = null;
+    static parapet_dosage_container = null;
+    
+    static t0_time = null;
+    static t0_dose = null;
+
+    static dosage_plot = null;
 
     static patients_container = null;
     static patients = [];
@@ -31,7 +37,23 @@ class Parapet {
         $(document).find("#autosave_switch").prop("checked",value);
     }
 
+    static set dosage_visibility(value){
+        if(Parapet.initialized){
+            if(! Parapet.dosage_plot){
+                Parapet.init_dosage_plot();
+            }
+            if(value) $(Parapet.parapet_dosage_container).removeClass("d-none");
+            else $(Parapet.parapet_dosage_container).addClass("d-none");
+        }
+    }
 
+    static get dosage_visibility(){
+        if(Parapet.initialized && Parapet.dosage_plot){
+            return ! $(Parapet.parapet_dosage_container).hasClass("d-none");
+        }
+        return false;
+    
+    }
 
     static set_params({number_of_patients, work_start, work_end}){
         this.number_of_patients = number_of_patients;
@@ -111,6 +133,7 @@ class Parapet {
         var export_block = $("<li/>").addClass("nav-item parapet-menu");
         var import_block = $("<li/>").addClass("nav-item parapet-menu");
         var print_block = $("<li/>").addClass("nav-item parapet-menu");
+        var dose_block = $("<li/>").addClass("nav-item parapet-menu");
         var swap_block = $("<li/>").addClass("nav-item parapet-menu mt-5");
 
         
@@ -119,6 +142,7 @@ class Parapet {
         menu_content.append(export_block);
         menu_content.append(import_block);
         menu_content.append(print_block);
+        menu_content.append(dose_block);
         menu_content.append(swap_block);
         
 
@@ -152,6 +176,13 @@ class Parapet {
         print_btn.attr("title","Print");
         print_btn.append($("<i/>").addClass("fa fa-print fa-solid"));
         print_block.append(print_btn);
+
+
+        var dose_btn = $("<a/>").addClass("nav-link link-dark py-3 my-1");
+        dose_btn.attr("data-bs-toggle","tooltip").attr("data-bs-placement","right");
+        dose_btn.attr("title","Dose planning");
+        dose_btn.append($("<i/>").addClass("fa fa-syringe fa-solid"));
+        dose_block.append(dose_btn);
 
         var swap_btn = $("<a/>").addClass("nav-link link-dark py-3 my-1 d-none");
         swap_btn.attr("data-bs-toggle","tooltip").attr("data-bs-placement","right");
@@ -251,6 +282,11 @@ class Parapet {
             $(modal_container).find("#print_modal").modal('show');
         })
 
+
+        dose_btn.on("click",function(){
+            Parapet.dosage_visibility = !Parapet.dosage_visibility;
+        })
+
         swap_btn.on("click",function(){
             var indices = Parapet.get_selected_indices();
             if(indices.length==2) Parapet.swap_patients(indices[0],indices[1]);
@@ -271,6 +307,10 @@ class Parapet {
         var schedule_container = $("<div/>").attr("id","parapet_schedule").addClass("row d-none");
         this.parapet_schedule_container = schedule_container;
         container.append(schedule_container);
+
+        var dosage_container = $("<div/>").attr("id","parapet_dosage").addClass("row d-none");
+        this.parapet_dosage_container = dosage_container;
+        container.append(dosage_container);
         
         
         var number_of_patients_block = $("<div/>").addClass("col-md-4 d-flex ");
@@ -724,6 +764,135 @@ class Parapet {
         Parapet.schedule_plot = new Chart(chart_element, config);
 
     }
+
+    static init_dosage_plot(container = null){
+        if(! container){
+            container = Parapet.parapet_dosage_container;
+        }
+        $(container).empty();
+
+        Parapet.parapet_dosage_container = container;
+
+        $(container).addClass("parapet-card");
+
+
+
+        const config = {
+            type: "line", // Use line chart
+            data: {
+              datasets: [],
+            },
+            options: {
+              animations:{colors:false},
+              scales: {
+                x: {
+                  type: "time",
+                  position: "bottom",
+                  time: {
+                    minUnit: "hour",
+                    displayFormats: {
+                      hour: "HH:mm",
+                    },
+                  },
+                  suggestedMin:moment(Parapet.work_start,"HH:mm"),
+                  suggestedMax:moment(Parapet.work_end,"HH:mm"),
+                },
+                y: {
+                  display: true, // Hide the y-axis
+                  title:{
+                    display:true,
+                    text: "Dose [MBq]"
+                  }
+                },
+              },
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                  legend: {
+                      display: false,
+                  }
+              },
+              
+
+              
+            },
+          };
+
+        var params_div = $("<div/>").addClass("row").attr("id","dosage_chart_params");
+
+        var t0_time_block = $("<div/>").attr("id","t0_time").addClass("row mb-1");
+        var t0_dose_block = $("<div/>").attr("id","t0_dose_block").addClass("row mb-1");
+      
+
+        params_div.append($("<div/>").addClass("col-6").append(t0_time_block));
+        params_div.append($("<div/>").addClass("col-6").append(t0_dose_block));
+        $(container).append(params_div);
+
+
+        // t0 dose
+        var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for","t0_dose").html(`t0 dose`);
+
+        var group_container = $("<div/>").addClass("input-group");
+
+        var _input = $("<input/>").addClass("form-control ").attr("type","text").attr("id","t0_dose").attr("name","t0_dose");
+        
+        _input.attr("placeholder","t0 dose in MBq");
+        if(Parapet.t0_dose) _input.val(Parapet.t0_dose);
+
+        group_container.append(_input)
+
+        var unit = $("<span/>").addClass("input-group-text w-25");  
+        unit.html("MBq");
+        group_container.append(unit);
+
+
+        _input.on("change",function(event){
+            const val = event.target.value;
+            Parapet.t0_dose = parseFloat(val);
+        })
+        t0_dose_block.append(_label).append($("<div/>").addClass("col-md-9").append(group_container));
+    
+        // t0 time
+
+        simple_dynamic_input_time(
+            t0_time_block,
+            "t0_time",
+            "t0 time",
+            5,
+            moment("03:00","HH:mm"),
+            Parapet.work_end,
+            Parapet.t0_time ? moment(Parapet.t0_time,"HH:mm").format("HH:mm") : null,
+            function (val) {
+                if(this.initialized){
+                    if(val==""){
+                        val = moment(Parapet.work_start, "HH:mm").format("HH:mm");
+                        $(t0_time_block).find("input").val(val);
+                    }
+    
+                    Parapet.t0_time = moment(val, "HH:mm").format("HH:mm");
+                }
+                
+            }.bind(this)
+        );
+
+
+
+
+        var chart_div = $("<canvas/>").attr("id","dosage_chart").css("height","125px");
+        $(container).append($("<div/>").append(chart_div).css("height","100pt").addClass("m-2"));
+        
+        var chart_element = document.getElementById("dosage_chart").getContext('2d');
+        Parapet.dosage_plot = new Chart(chart_element, config);
+
+
+        $(params_div).find("input:not(:checkbox)").on("change",function(){
+            if(Parapet.initialized) Parapet.update_dose_plot();
+        })
+
+
+    }
+
+
     static update_schedule_plot(alpha = 0.6){
         // reformat data
         var dataset = [];
@@ -835,6 +1004,83 @@ class Parapet {
         Parapet.schedule_plot.data.datasets = dataset;
 
         Parapet.schedule_plot.update();
+        
+        if(Parapet.dosage_visibility) Parapet.update_dose_plot();
+
+    }
+
+    static update_dose_plot(){
+        var data = [];
+        const t0 = moment(Parapet.t0_time,"HH:mm");
+        const t0_dose = Parapet.t0_dose;
+
+        const half_time = 109.771*60.0;
+        const decay_const = Math.log(2) / half_time;
+
+        var moving_t0 = t0;
+        var moving_t0_dose = t0_dose;
+
+
+        var inj_events = [];
+        for (let index = 0; index < Parapet.number_of_patients; index++) {
+            const patient = Parapet.patients[index];
+            if(patient instanceof PETPatient){
+                if(patient.inj_dose){
+                    inj_events.push({time:moment(patient.inj_time,"HH:mm"),dose:patient.inj_dose});
+                }
+            }
+        }
+        inj_events = inj_events.sort((a,b)=> a.time-b.time);
+
+        
+        var time_step = moment.duration(1,'minutes');
+        var current_time = moment(t0,"HH:mm");
+
+        var event_index = 0;
+        while(true){
+            var current_dose = moving_t0_dose * Math.exp(-decay_const*(current_time.diff(moving_t0,"seconds")));
+
+            if(event_index<inj_events.length){
+                var event_time = inj_events[event_index].time;
+                if(event_time<=current_time){
+                    moving_t0 = event_time;
+                    
+                    current_dose -=inj_events[event_index].dose;
+                    moving_t0_dose = current_dose;
+
+                    event_index+=1;
+                }
+            }
+            data.push({x:moment(current_time,"HH:mm"),y:current_dose});
+
+            current_time = current_time.add(time_step);
+            if(current_time>moment(Parapet.work_end,"HH.mm")) break;
+        }
+
+        var dataset = {
+            label:`Current dose @`,
+            pointHoverRadius: 0,
+            pointBorderWidth:0,
+            borderWidth: 2,
+            pointRadius:0,
+            data: data
+        }
+
+        if(!Parapet.dosage_plot){
+            Parapet.init_dosage_plot();
+        }
+
+        // remove old data
+        Parapet.dosage_plot.data.labels.pop();
+        Parapet.dosage_plot.data.datasets.forEach((dataset) => {
+            dataset.data.pop();
+        });
+        
+        // add new data
+        Parapet.dosage_plot.data.datasets = [dataset];
+
+        Parapet.dosage_plot.update();
+
 
     }
 
@@ -1085,11 +1331,12 @@ class PETPatient {
     }
 
 
-    constructor (number_of_scans = 1, inj_time = null,patient_name = "", visible = false ){
+    constructor (number_of_scans = 1, inj_dose = null, inj_time = null,  patient_name = "", visible = false ){
         this._number_of_scans = number_of_scans;
 
         if(inj_time === null) inj_time = Parapet.work_start;
         this._inj_time = moment(inj_time,"HH:mm").format("HH:mm");
+        this.inj_dose = parseFloat(inj_dose);
         this.patient_name = patient_name;
         this.scans = [];
         this.visible = visible;
@@ -1137,8 +1384,8 @@ class PETPatient {
         }
     }
 
-    static from_params({number_of_scans,inj_time,patient_name,scans, visible, preset}){
-        var patient =  new PETPatient(number_of_scans=number_of_scans,inj_time=inj_time,patient_name = patient_name, visible = visible, preset = preset);
+    static from_params({number_of_scans, inj_dose, inj_time,  patient_name,scans, visible, preset}){
+        var patient =  new PETPatient(number_of_scans=number_of_scans, inj_dose = inj_dose,  inj_time=inj_time, patient_name = patient_name, visible = visible, preset = preset);
         if(isArray(scans)){
             for (let index = 0; index < scans.length; index++) {
                 const scan_params = scans[index];
@@ -1300,6 +1547,7 @@ class PETPatient {
             var preset = PETPatient.presets[preset_name];
             if(preset instanceof PETPatient){
                 this.number_of_scans = preset.number_of_scans;
+                this.inj_dose = preset.inj_dose;
                 this.scans = [];
                 this.preset = preset_name;
                 if(this.scan_details_div){
@@ -1326,7 +1574,7 @@ class PETPatient {
 
     serializePatient(){
         var serialized_object = {patient_name : this.patient_name,
-                                 number_of_scans : this.number_of_scans,
+                                 number_of_scans : this.number_of_scans, inj_dose : this.inj_dose,
                                  inj_time: this.inj_time, visible: this.visible, preset: this.preset
         }
         var serialized_scans = []
@@ -1364,6 +1612,11 @@ class PETPatient {
             if(this.preset){
                 this.params_div.find(`#preset_select`).val(this.preset);
             }
+
+            let inj_dose_div = this.details_div.find(`[name="inj_dose"]`);
+            if(this.inj_dose) inj_dose_div.val(this.inj_dose);
+
+
         }
         this.index = this.index;
     }
@@ -1395,6 +1648,32 @@ class PETPatient {
         container.empty();
         container.append(_label).append($("<div/>").addClass("col-md-9").append(_select_dropdow));
 
+    }
+
+    #show_inj_dose_block(container){
+        var _label =  $("<label/>").addClass("col-md-3 col-form-label").attr("for","inj_dose").html(`Planned injected dose`);
+
+        var group_container = $("<div/>").addClass("input-group");
+
+        var _input = $("<input/>").addClass("form-control ").attr("type","text").attr("id","inj_dose").attr("name","inj_dose");
+        
+        _input.attr("placeholder","Planned injected dose in MBq");
+        if(this.inj_dose) _input.val(this.inj_dose);
+
+        group_container.append(_input)
+
+        var unit = $("<span/>").addClass("input-group-text w-25");  
+        unit.html("MBq");
+        group_container.append(unit);
+
+
+        _input.on("change",function(event){
+            const val = event.target.value;
+            this.inj_dose = parseFloat(val);
+        }.bind(this))
+
+        container.empty();
+        container.append(_label).append($("<div/>").addClass("col-md-9").append(group_container));
     }
 
     #show_name_block(container){
@@ -1543,7 +1822,7 @@ class PETPatient {
         $(params_block).append(main_props);
 
         var number_of_scans_block = $("<div/>").attr("id","number_of_scans_block").addClass("row mb-1");
-        // var inj_delay_block = $("<div/>").attr("id","inj_delay_block").addClass("row mb-1");
+        var inj_dose_block = $("<div/>").attr("id","inj_dose_block").addClass("row mb-1");
       
 
         $(details_container).addClass("collapse").attr("id",this.patient_details_name);
@@ -1559,7 +1838,7 @@ class PETPatient {
 
         var details_first_row = $("<div/>").addClass("row");
         details_first_row.append($("<div/>").addClass("col-6").append(number_of_scans_block));
-        // details_first_row.append($("<div/>").addClass("col-6").append(inj_delay_block));
+        details_first_row.append($("<div/>").addClass("col-6").append(inj_dose_block));
         details_content.append(details_first_row);
 
         this.scan_details_div = $("<div/>").addClass("d-flex w-100");
@@ -1613,11 +1892,13 @@ class PETPatient {
                 }
                 
             }.bind(this))
-        
+            
+        this.#show_inj_dose_block(inj_dose_block);
                 
 
         $(params_container).find("input:not(:checkbox)").on("change",function(){
             if(this.initialized) this.paramsToSlider();
+
         }.bind(this))
 
         $(details_first_row).find("input:not(:checkbox)").on("change",function(){

@@ -44,6 +44,14 @@ More user interface stuff...
 
 -------------------------------------------
 
+
+Dosis planner
+
+1. Injected dose for patients                                       OK
+2. Dose plot                                                        OK
+
+-------------------------------------------
+
 Preview presets
 
 1. Modal and table(s) to show preset parameters.
