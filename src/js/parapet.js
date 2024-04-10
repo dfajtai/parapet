@@ -181,7 +181,7 @@ class Parapet {
         var dose_btn = $("<a/>").addClass("nav-link link-dark py-3 my-1");
         dose_btn.attr("data-bs-toggle","tooltip").attr("data-bs-placement","right");
         dose_btn.attr("title","Dose planning");
-        dose_btn.append($("<i/>").addClass("fa fa-syringe fa-solid"));
+        dose_btn.append($("<i/>").addClass("fa fa-circle-radiation fa-solid"));
         dose_block.append(dose_btn);
 
         var swap_btn = $("<a/>").addClass("nav-link link-dark py-3 my-1 d-none");
