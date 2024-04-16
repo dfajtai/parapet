@@ -1295,36 +1295,36 @@ class PETPatient {
 
     static create_presets(){
         var fdg = new PETPatient(1);
-        fdg.add_scan(new PETScan(60,1,20,5,5));
+        fdg.add_scan(new PETScan(60,1,20,5,0));
 
         var fdg_wb = new PETPatient(1);
-        fdg_wb.add_scan(new PETScan(60,8,3,5,5));
+        fdg_wb.add_scan(new PETScan(60,8,3,5,0));
 
         var fdg_wb_leg = new PETPatient(2);
         fdg_wb_leg.add_scan(new PETScan(60,8,3,5,0));
-        fdg_wb_leg.add_scan(new PETScan(null,8,1.5,0,10));
+        fdg_wb_leg.add_scan(new PETScan(null,8,1.5,5,0));
 
         var fdg_leg_wb = new PETPatient(2);
         fdg_leg_wb.add_scan(new PETScan(40,8,1.5,5,0));
-        fdg_leg_wb.add_scan(new PETScan(60,8,3,0,10));
+        fdg_leg_wb.add_scan(new PETScan(60,8,3,0,0));
 
 
         var dopa = new PETPatient(1);
-        dopa.add_scan(new PETScan(10,1,20,5,5));
+        dopa.add_scan(new PETScan(10,1,20,5,0));
         
         var dopa_wb = new PETPatient(2);
-        dopa_wb.add_scan(new PETScan(10,10,3,5,5));
-        dopa_wb.add_scan(new PETScan(60,10,3,5,5));
+        dopa_wb.add_scan(new PETScan(10,10,3,5,0));
+        dopa_wb.add_scan(new PETScan(60,10,3,5,0));
 
 
 
         var choline_parathyorid = new PETPatient(2);        
-        choline_parathyorid.add_scan(new PETScan(10,3,5,5,5));
-        choline_parathyorid.add_scan(new PETScan(60,3,5,5,5));
+        choline_parathyorid.add_scan(new PETScan(10,3,5,5,0));
+        choline_parathyorid.add_scan(new PETScan(60,3,5,5,0));
 
         var choline_prostate = new PETPatient(2);
-        choline_prostate.add_scan(new PETScan(2,2,3,5,5));
-        choline_prostate.add_scan(new PETScan(60,10,3,5,5));
+        choline_prostate.add_scan(new PETScan(2,2,3,5,0));
+        choline_prostate.add_scan(new PETScan(60,10,3,5,0));
 
         PETPatient.presets = {
             "FDG - brain":fdg,
